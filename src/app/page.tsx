@@ -317,7 +317,7 @@ export default function HomePage() {
       {/* Newsletter */}
       <section className="bg-[#1E40AF] rounded-2xl p-8 text-center text-white">
         <h2 className="text-2xl font-bold mb-2">Get Market Intelligence in Your Inbox</h2>
-        <p className="text-blue-200 mb-6">Join 50,000+ investors who receive our daily market brief, IPO alerts, and weekly wealth digest.</p>
+        <p className="text-blue-200 mb-6">Get our daily market brief, IPO alerts, and weekly wealth digest delivered to your inbox.</p>
         <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
           <input type="email" placeholder="Enter your email address" className="flex-1 px-4 py-3 rounded-lg text-gray-900 text-sm focus:outline-none" />
           <button type="submit" className="bg-[#F59E0B] hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors shrink-0">Subscribe Free</button>

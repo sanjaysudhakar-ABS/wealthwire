@@ -101,6 +101,10 @@ export default function PrivacyPolicyPage() {
                 <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" className="text-[#1E40AF] hover:underline">
                   www.aboutads.info/choices
                 </a>
+                . To learn more about how Google uses data collected via our site, visit{" "}
+                <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="text-[#1E40AF] hover:underline">
+                  How Google uses data when you use our partners&apos; sites or apps
+                </a>
                 .
               </p>
             </div>
