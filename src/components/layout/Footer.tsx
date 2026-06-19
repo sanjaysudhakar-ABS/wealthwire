@@ -22,8 +22,17 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-3">Quick Links</h4>
             <ul className="space-y-2 text-sm">
-              {["About", "Contact", "Advertise", "Careers", "Privacy Policy", "Terms of Use", "Disclaimer", "Sitemap"].map(l => (
-                <li key={l}><Link href="#" className="hover:text-white transition-colors">{l}</Link></li>
+              {[
+                { label: "About", href: "/about" },
+                { label: "Contact", href: "/contact" },
+                { label: "Advertise", href: "/contact" },
+                { label: "Careers", href: "/about" },
+                { label: "Privacy Policy", href: "/privacy-policy" },
+                { label: "Terms of Use", href: "/terms-of-use" },
+                { label: "Disclaimer", href: "/disclaimer" },
+                { label: "Sitemap", href: "/sitemap.xml" },
+              ].map(l => (
+                <li key={l.label}><Link href={l.href} className="hover:text-white transition-colors">{l.label}</Link></li>
               ))}
             </ul>
           </div>
@@ -43,7 +52,7 @@ export function Footer() {
               {[
                 { label: "SIP Calculator", href: "/calculators/sip" },
                 { label: "EMI Calculator", href: "/calculators/emi" },
-                { label: "Retirement Planner", href: "/calculators" },
+                { label: "Retirement Planner", href: "/calculators/retirement" },
                 { label: "CAGR Calculator", href: "/calculators" },
               ].map(l => (
                 <li key={l.label}><Link href={l.href} className="hover:text-white transition-colors">{l.label}</Link></li>

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider"
 import { MarketTicker } from "@/components/layout/MarketTicker"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { CookieBanner } from "@/components/layout/CookieBanner"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,6 +49,7 @@ export default function RootLayout({
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          <CookieBanner />
         </ThemeProvider>
       </body>
     </html>
