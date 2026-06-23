@@ -40,8 +40,15 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-3">Markets</h4>
             <ul className="space-y-2 text-sm">
-              {["Stocks", "Mutual Funds", "IPO", "Gold Rates", "Forex", "Commodities"].map(l => (
-                <li key={l}><Link href="#" className="hover:text-white transition-colors">{l}</Link></li>
+              {[
+                { label: "Stocks", href: "/markets" },
+                { label: "Mutual Funds", href: "/mutual-funds" },
+                { label: "IPO", href: "/ipo" },
+                { label: "Gold Rates", href: "/markets" },
+                { label: "News", href: "/news" },
+                { label: "Calculators", href: "/calculators" },
+              ].map(l => (
+                <li key={l.label}><Link href={l.href} className="hover:text-white transition-colors">{l.label}</Link></li>
               ))}
             </ul>
           </div>
