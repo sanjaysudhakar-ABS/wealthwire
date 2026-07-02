@@ -156,7 +156,7 @@ export default function PrivacyPolicyPage() {
             <li>Withdraw consent at any time where processing is based on consent</li>
           </ul>
           <p className="mt-3">
-            To exercise these rights, contact us at editorial@wealthwireindia.com.
+            To exercise these rights, contact us at info@abscorp.xyz.
           </p>
         </section>
 
@@ -175,8 +175,8 @@ export default function PrivacyPolicyPage() {
             If you have questions about this Privacy Policy or our data practices, please contact us:
           </p>
           <div className="mt-3 space-y-1">
-            <p><strong>Email:</strong> editorial@wealthwireindia.com</p>
-            <p><strong>Address:</strong> Mumbai, Maharashtra, India</p>
+            <p><strong>Email:</strong> info@abscorp.xyz</p>
+            <p><strong>Address:</strong> Chennai, Tamil Nadu, India</p>
           </div>
           <p className="mt-3">
             Or use our <Link href="/contact" className="text-[#1E40AF] hover:underline">Contact Page</Link>.

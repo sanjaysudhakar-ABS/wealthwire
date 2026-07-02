@@ -69,7 +69,7 @@ export default function DisclaimerPage() {
             Affiliate relationships do not influence our editorial coverage. Our reviews and
             recommendations are based on independent analysis. We clearly identify sponsored content
             where applicable. If you have questions about a specific link or partnership, please
-            contact us at editorial@wealthwireindia.com.
+            contact us at info@abscorp.xyz.
           </p>
         </section>
 

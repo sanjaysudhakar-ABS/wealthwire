@@ -115,11 +115,15 @@ export function ContactForm() {
       <div className="space-y-5">
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800/50">
           <h3 className="font-semibold text-[#0F172A] dark:text-white mb-1">Email</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">editorial@wealthwireindia.com</p>
+          <a href="mailto:info@abscorp.xyz" className="text-sm text-[#1E40AF] hover:underline">info@abscorp.xyz</a>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800/50">
+          <h3 className="font-semibold text-[#0F172A] dark:text-white mb-1">Phone</h3>
+          <a href="tel:+919840496746" className="text-sm text-[#1E40AF] hover:underline">+91 98404 96746</a>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800/50">
           <h3 className="font-semibold text-[#0F172A] dark:text-white mb-1">Address</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Mumbai, Maharashtra, India</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Chennai, Tamil Nadu, India</p>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800/50">
           <h3 className="font-semibold text-[#0F172A] dark:text-white mb-1">Response Time</h3>

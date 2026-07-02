@@ -101,7 +101,7 @@ export default function TermsOfUsePage() {
           <p>
             These Terms of Use shall be governed by and construed in accordance with the laws of
             India. Any disputes arising in connection with these terms shall be subject to the
-            exclusive jurisdiction of the courts of Mumbai, Maharashtra, India.
+            exclusive jurisdiction of the courts of Chennai, Tamil Nadu, India.
           </p>
         </section>
 
@@ -119,8 +119,8 @@ export default function TermsOfUsePage() {
           <h2 className="text-xl font-bold text-[#0F172A] dark:text-white mb-4">9. Contact</h2>
           <p>
             If you have any questions about these Terms of Use, please contact us at{" "}
-            <a href="mailto:editorial@wealthwireindia.com" className="text-[#1E40AF] hover:underline">
-              editorial@wealthwireindia.com
+            <a href="mailto:info@abscorp.xyz" className="text-[#1E40AF] hover:underline">
+              info@abscorp.xyz
             </a>{" "}
             or via our{" "}
             <Link href="/contact" className="text-[#1E40AF] hover:underline">Contact Page</Link>.
