@@ -1,19 +1,108 @@
 import { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import { AdUnit } from "@/components/ads/AdUnit"
-import { newsArticles } from "@/lib/mock-data"
+import { newsArticles as mockArticles } from "@/lib/mock-data"
+import prisma from "@/lib/prisma"
+
+export const revalidate = 3600
+
+const PLACEHOLDER = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800"
+
+async function getArticle(slug: string) {
+  try {
+    const row = await prisma.article.findUnique({
+      where: { slug, status: "PUBLISHED" },
+      include: { category: true },
+    })
+    if (row) return {
+      title: row.title,
+      slug: row.slug,
+      excerpt: row.excerpt ?? "",
+      content: row.content,
+      coverImage: row.coverImage ?? PLACEHOLDER,
+      category: row.category?.name ?? "Markets",
+      author: "WealthWire India",
+      date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
+      isAI: true,
+    }
+  } catch { /* fallthrough */ }
+
+  const mock = mockArticles.find(a => a.slug === slug)
+  if (mock) return { ...mock, content: null, isAI: false }
+  return null
+}
+
+async function getRelated(slug: string, category: string) {
+  try {
+    const rows = await prisma.article.findMany({
+      where: { status: "PUBLISHED", slug: { not: slug }, category: { name: category } },
+      take: 3,
+      orderBy: { publishedAt: "desc" },
+      select: { slug: true, title: true, coverImage: true },
+    })
+    if (rows.length > 0) return rows.map(r => ({ slug: r.slug, title: r.title, coverImage: r.coverImage ?? PLACEHOLDER }))
+  } catch { /* fallthrough */ }
+
+  return mockArticles
+    .filter(a => a.slug !== slug && a.category === category)
+    .slice(0, 3)
+    .map(a => ({ slug: a.slug, title: a.title, coverImage: a.coverImage }))
+}
+
+async function getLatestArticles() {
+  try {
+    const rows = await prisma.article.findMany({
+      where: { status: "PUBLISHED" },
+      take: 5,
+      orderBy: { publishedAt: "desc" },
+      select: { slug: true, title: true, coverImage: true },
+    })
+    if (rows.length > 0) return rows.map(r => ({ slug: r.slug, title: r.title, coverImage: r.coverImage ?? PLACEHOLDER }))
+  } catch { /* fallthrough */ }
+  return mockArticles.slice(0, 5).map(a => ({ slug: a.slug, title: a.title, coverImage: a.coverImage }))
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
-  const article = newsArticles.find(a => a.slug === slug) || newsArticles[0]
+  const article = await getArticle(slug)
+  if (!article) return { title: "Article Not Found" }
   return { title: article.title, description: article.excerpt }
+}
+
+// Render markdown-ish content (bold, headings, lists, paragraphs)
+function renderContent(content: string) {
+  const lines = content.split("\n")
+  const elements: React.ReactNode[] = []
+  let key = 0
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+
+    if (trimmed.startsWith("### ")) {
+      elements.push(<h3 key={key++} className="text-lg font-bold mt-5 mb-2">{trimmed.slice(4)}</h3>)
+    } else if (trimmed.startsWith("## ")) {
+      elements.push(<h2 key={key++} className="text-xl font-bold mt-6 mb-3">{trimmed.slice(3)}</h2>)
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      elements.push(<li key={key++} className="ml-5 list-disc">{trimmed.slice(2)}</li>)
+    } else if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
+      elements.push(<p key={key++} className="font-semibold">{trimmed.slice(2, -2)}</p>)
+    } else {
+      elements.push(<p key={key++} className="leading-relaxed">{trimmed}</p>)
+    }
+  }
+  return elements
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const article = newsArticles.find(a => a.slug === slug) || newsArticles[0]
-  const related = newsArticles.filter(a => a.slug !== article.slug && a.category === article.category).slice(0, 3)
+  const [article, latestArticles] = await Promise.all([getArticle(slug), getLatestArticles()])
+
+  if (!article) notFound()
+
+  const related = await getRelated(slug, article.category)
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-8">
@@ -27,34 +116,40 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <span className="text-xs bg-[#1E40AF] text-white px-3 py-1 rounded-full font-medium mb-4 inline-block">{article.category}</span>
           <h1 className="text-3xl font-extrabold leading-tight mb-4">{article.title}</h1>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
-            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold">{article.author[0]}</div>
-            <div><div className="font-medium text-gray-900 dark:text-gray-100">{article.author}</div><div className="text-xs">{article.date} · {article.readTime} read</div></div>
+            <div className="w-8 h-8 rounded-full bg-[#1E40AF] flex items-center justify-center text-white text-xs font-bold">W</div>
+            <div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">{article.author}</div>
+              <div className="text-xs">{article.date}</div>
+            </div>
           </div>
           <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden mb-8">
             <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
           </div>
           <AdUnit slot="in-article-top" className="w-full rounded-xl mb-6" />
-          <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed space-y-4">
-            <p className="text-lg font-medium">{article.excerpt}</p>
-            <p>Indian financial markets have been witnessing significant activity in recent months. Investors are closely monitoring both domestic and global cues to make informed investment decisions. The interplay of factors such as foreign institutional investor flows, domestic economic data, and global macroeconomic developments continues to shape market sentiment.</p>
-            <p>Experts suggest that retail investors should focus on their long-term financial goals rather than reacting to short-term market volatility. A well-diversified portfolio across asset classes — equities, debt, gold, and real estate — remains the cornerstone of sound financial planning.</p>
-            <h2 className="text-xl font-bold mt-6 mb-3">Key Takeaways for Investors</h2>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>Stay invested through market cycles and avoid panic selling during corrections</li>
-              <li>Continue SIP investments regardless of market conditions — time in the market beats timing the market</li>
-              <li>Review and rebalance your portfolio at least once a year</li>
-              <li>Ensure adequate insurance coverage before making investments</li>
-            </ul>
+          <div className="text-gray-700 dark:text-gray-300 space-y-4">
+            {article.content
+              ? renderContent(article.content)
+              : (
+                <>
+                  <p className="text-lg font-medium">{article.excerpt}</p>
+                  <p>Indian financial markets have been witnessing significant activity. Investors are closely monitoring domestic and global cues to make informed investment decisions.</p>
+                  <p>Experts suggest retail investors focus on long-term financial goals rather than reacting to short-term market volatility. A well-diversified portfolio across equities, debt, gold, and real estate remains the cornerstone of sound financial planning.</p>
+                  <h2 className="text-xl font-bold mt-6 mb-3">Key Takeaways for Investors</h2>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Stay invested through market cycles and avoid panic selling</li>
+                    <li>Continue SIP investments regardless of market conditions</li>
+                    <li>Review and rebalance your portfolio at least once a year</li>
+                    <li>Ensure adequate insurance coverage before making investments</li>
+                  </ul>
+                </>
+              )
+            }
           </div>
           <AdUnit slot="in-article-middle" className="w-full rounded-xl my-8" />
           <div className="flex gap-3 mb-8">
-            {["twitter", "linkedin", "whatsapp"].map((platform) => (
-              <button key={platform} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors capitalize">{platform}</button>
+            {["Twitter", "LinkedIn", "WhatsApp"].map((platform) => (
+              <button key={platform} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{platform}</button>
             ))}
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-start gap-4 mb-8">
-            <div className="w-12 h-12 rounded-full bg-[#1E40AF] flex items-center justify-center text-white font-bold text-lg shrink-0">{article.author[0]}</div>
-            <div><div className="font-bold">{article.author}</div><div className="text-sm text-gray-500 mt-1">Senior Financial Journalist at WealthWire India. Covers stock markets, mutual funds, and personal finance.</div></div>
           </div>
           {related.length > 0 && (
             <div>
@@ -76,7 +171,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <AdUnit slot="article-sidebar" className="w-full rounded-xl" />
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
             <h3 className="font-bold mb-4">Latest News</h3>
-            {newsArticles.slice(0, 5).map(a => (
+            {latestArticles.map(a => (
               <Link key={a.slug} href={`/news/${a.slug}`} className="flex gap-3 mb-4 group">
                 <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 shrink-0">
                   <Image src={a.coverImage} alt={a.title} fill className="object-cover" />
