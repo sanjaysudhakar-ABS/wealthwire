@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AdUnit } from "@/components/ads/AdUnit"
-import { marketIndices, topGainers, topLosers, mutualFunds, ipoList, newsArticles, goldRates, sectors } from "@/lib/mock-data"
+import { mutualFunds, ipoList, newsArticles, sectors } from "@/lib/mock-data"
+import { getAllMarketData } from "@/lib/market-api"
 
 function formatINR(value: number) {
   return value.toLocaleString("en-IN", { maximumFractionDigits: 2 })
@@ -21,7 +22,10 @@ function StarRating({ rating }: { rating: number }) {
   )
 }
 
-export default function HomePage() {
+export const revalidate = 3600
+
+export default async function HomePage() {
+  const { indices: marketIndices, gainers: topGainers, losers: topLosers, goldRates } = await getAllMarketData()
   const featured = newsArticles[0]
   const headlines = newsArticles.slice(1, 5)
   const latestNews = newsArticles.slice(0, 9)

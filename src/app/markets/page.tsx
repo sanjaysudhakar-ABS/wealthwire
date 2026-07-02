@@ -3,7 +3,10 @@ import Link from "next/link"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdUnit } from "@/components/ads/AdUnit"
-import { marketIndices, topGainers, topLosers, sectors } from "@/lib/mock-data"
+import { sectors } from "@/lib/mock-data"
+import { getAllMarketData } from "@/lib/market-api"
+
+export const revalidate = 3600
 
 export const metadata: Metadata = { title: "Stock Market Today – Nifty, Sensex Live | WealthWire India", description: "Live Nifty 50, Sensex, Bank Nifty data. Top gainers, losers, sector performance and market news." }
 
@@ -17,7 +20,8 @@ const mostActive = [
   { symbol: "BAJAJFINSV", name: "Bajaj Finserv", price: 1876.45, change: 1.45, volume: "1.9 Cr" },
 ]
 
-export default function MarketsPage() {
+export default async function MarketsPage() {
+  const { indices: marketIndices, gainers: topGainers, losers: topLosers } = await getAllMarketData()
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-8 space-y-8">
       <div>

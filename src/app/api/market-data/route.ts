@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
-import { marketIndices, topGainers, topLosers, sectors } from "@/lib/mock-data"
+import { getAllMarketData } from "@/lib/market-api"
+
+export const revalidate = 3600
 
 export async function GET() {
-  return NextResponse.json({ indices: marketIndices, gainers: topGainers, losers: topLosers, sectors })
+  const data = await getAllMarketData()
+  return NextResponse.json(data)
 }
