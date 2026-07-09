@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { AdUnit } from "@/components/ads/AdUnit"
+import { AdSlot } from "@/components/ads/AdSlot"
 import { newsArticles as mockArticles } from "@/lib/mock-data"
 import prisma from "@/lib/prisma"
 
@@ -82,15 +82,15 @@ function renderContent(content: string) {
     if (!trimmed) continue
 
     if (trimmed.startsWith("### ")) {
-      elements.push(<h3 key={key++} className="text-lg font-bold mt-5 mb-2">{trimmed.slice(4)}</h3>)
+      elements.push(<h3 key={key++}>{trimmed.slice(4)}</h3>)
     } else if (trimmed.startsWith("## ")) {
-      elements.push(<h2 key={key++} className="text-xl font-bold mt-6 mb-3">{trimmed.slice(3)}</h2>)
+      elements.push(<h2 key={key++}>{trimmed.slice(3)}</h2>)
     } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      elements.push(<li key={key++} className="ml-5 list-disc">{trimmed.slice(2)}</li>)
+      elements.push(<li key={key++}>{trimmed.slice(2)}</li>)
     } else if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
       elements.push(<p key={key++} className="font-semibold">{trimmed.slice(2, -2)}</p>)
     } else {
-      elements.push(<p key={key++} className="leading-relaxed">{trimmed}</p>)
+      elements.push(<p key={key++}>{trimmed}</p>)
     }
   }
   return elements
@@ -114,7 +114,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <span className="text-gray-900 dark:text-gray-100">{article.category}</span>
           </nav>
           <span className="text-xs bg-[#1E40AF] text-white px-3 py-1 rounded-full font-medium mb-4 inline-block">{article.category}</span>
-          <h1 className="text-3xl font-extrabold leading-tight mb-4">{article.title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight mb-4">{article.title}</h1>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
             <div className="w-8 h-8 rounded-full bg-[#1E40AF] flex items-center justify-center text-white text-xs font-bold">W</div>
             <div>
@@ -125,8 +125,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden mb-8">
             <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
           </div>
-          <AdUnit slot="in-article-top" className="w-full rounded-xl mb-6" />
-          <div className="text-gray-700 dark:text-gray-300 space-y-4">
+          <AdSlot slot="IN_ARTICLE_TOP" className="mb-6" />
+          <div className="prose-article">
             {article.content
               ? renderContent(article.content)
               : (
@@ -145,7 +145,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               )
             }
           </div>
-          <AdUnit slot="in-article-middle" className="w-full rounded-xl my-8" />
+          <AdSlot slot="IN_ARTICLE_MIDDLE" className="my-8" />
           <div className="flex gap-3 mb-8">
             {["Twitter", "LinkedIn", "WhatsApp"].map((platform) => (
               <button key={platform} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{platform}</button>
@@ -168,7 +168,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           )}
         </article>
         <aside className="space-y-6">
-          <AdUnit slot="article-sidebar" className="w-full rounded-xl" />
+          <AdSlot slot="SIDEBAR" />
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
             <h3 className="font-bold mb-4">Latest News</h3>
             {latestArticles.map(a => (
