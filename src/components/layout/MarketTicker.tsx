@@ -1,8 +1,10 @@
 "use client"
 import { marketIndices } from "@/lib/mock-data"
+import { useMarketIndices } from "@/components/markets/useMarketData"
 
 export function MarketTicker() {
-  const items = [...marketIndices, ...marketIndices]
+  const { indices } = useMarketIndices(marketIndices)
+  const items = [...indices, ...indices]
   return (
     <div className="bg-[#0F172A] text-white text-xs py-1.5 overflow-hidden">
       <div
@@ -12,7 +14,7 @@ export function MarketTicker() {
         {items.map((item, i) => (
           <span key={i} className="inline-flex items-center gap-2 px-6">
             <span className="font-semibold text-gray-300">{item.name}</span>
-            <span className="font-bold">{item.value.toLocaleString("en-IN")}</span>
+            <span className="font-bold">{item.value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
             <span className={item.change >= 0 ? "text-emerald-400" : "text-red-400"}>
               {item.change >= 0 ? "▲" : "▼"} {Math.abs(item.changePercent).toFixed(2)}%
             </span>
