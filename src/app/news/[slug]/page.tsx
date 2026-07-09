@@ -1,7 +1,7 @@
 import { Metadata } from "next"
-import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { SafeImage } from "@/components/ui/SafeImage"
 import { AdSlot } from "@/components/ads/AdSlot"
 import { newsArticles as mockArticles } from "@/lib/mock-data"
 import prisma from "@/lib/prisma"
@@ -10,27 +10,43 @@ export const revalidate = 3600
 
 const PLACEHOLDER = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800"
 
+// Synced news articles embed their origin as "**Source:** [name](url)".
+// Pull it out so the page can render a prominent link to the original.
+function extractSource(content: string | null) {
+  if (!content) return { source: null, body: content }
+  const m = content.match(/\*\*Source:\*\*\s*\[([^\]]+)\]\(([^)]+)\)/)
+  if (!m) return { source: null, body: content }
+  return {
+    source: { name: m[1], url: m[2] },
+    body: content.replace(m[0], "").trim(),
+  }
+}
+
 async function getArticle(slug: string) {
   try {
     const row = await prisma.article.findUnique({
       where: { slug, status: "PUBLISHED" },
       include: { category: true },
     })
-    if (row) return {
-      title: row.title,
-      slug: row.slug,
-      excerpt: row.excerpt ?? "",
-      content: row.content,
-      coverImage: row.coverImage ?? PLACEHOLDER,
-      category: row.category?.name ?? "Markets",
-      author: "WealthWire India",
-      date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
-      isAI: true,
+    if (row) {
+      const { source, body } = extractSource(row.content)
+      return {
+        title: row.title,
+        slug: row.slug,
+        excerpt: row.excerpt ?? "",
+        content: body,
+        source,
+        coverImage: row.coverImage ?? PLACEHOLDER,
+        category: row.category?.name ?? "Markets",
+        author: source?.name ?? "WealthWire India",
+        date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
+        isAI: true,
+      }
     }
   } catch { /* fallthrough */ }
 
   const mock = mockArticles.find(a => a.slug === slug)
-  if (mock) return { ...mock, content: null, isAI: false }
+  if (mock) return { ...mock, content: null, source: null, isAI: false }
   return null
 }
 
@@ -71,7 +87,29 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: article.title, description: article.excerpt }
 }
 
-// Render markdown-ish content (bold, headings, lists, paragraphs)
+// Render inline markdown: [links](url), **bold**, *italic*
+function renderInline(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = []
+  const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g
+  let last = 0
+  let key = 0
+  let m: RegExpExecArray | null
+  while ((m = pattern.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index))
+    if (m[1] !== undefined) {
+      nodes.push(<a key={key++} href={m[2]} target="_blank" rel="noopener noreferrer">{m[1]}</a>)
+    } else if (m[3] !== undefined) {
+      nodes.push(<strong key={key++}>{m[3]}</strong>)
+    } else {
+      nodes.push(<em key={key++}>{m[4]}</em>)
+    }
+    last = m.index + m[0].length
+  }
+  if (last < text.length) nodes.push(text.slice(last))
+  return nodes
+}
+
+// Render markdown-ish content (headings, lists, paragraphs + inline marks)
 function renderContent(content: string) {
   const lines = content.split("\n")
   const elements: React.ReactNode[] = []
@@ -82,15 +120,13 @@ function renderContent(content: string) {
     if (!trimmed) continue
 
     if (trimmed.startsWith("### ")) {
-      elements.push(<h3 key={key++}>{trimmed.slice(4)}</h3>)
+      elements.push(<h3 key={key++}>{renderInline(trimmed.slice(4))}</h3>)
     } else if (trimmed.startsWith("## ")) {
-      elements.push(<h2 key={key++}>{trimmed.slice(3)}</h2>)
+      elements.push(<h2 key={key++}>{renderInline(trimmed.slice(3))}</h2>)
     } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      elements.push(<li key={key++}>{trimmed.slice(2)}</li>)
-    } else if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
-      elements.push(<p key={key++} className="font-semibold">{trimmed.slice(2, -2)}</p>)
+      elements.push(<li key={key++}>{renderInline(trimmed.slice(2))}</li>)
     } else {
-      elements.push(<p key={key++}>{trimmed}</p>)
+      elements.push(<p key={key++}>{renderInline(trimmed)}</p>)
     }
   }
   return elements
@@ -114,7 +150,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <span className="text-gray-900 dark:text-gray-100">{article.category}</span>
           </nav>
           <span className="text-xs bg-[#1E40AF] text-white px-3 py-1 rounded-full font-medium mb-4 inline-block">{article.category}</span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight mb-4">{article.title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight mb-4">
+            {article.source ? (
+              <a href={article.source.url} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#1E40AF] dark:hover:text-blue-400">
+                {article.title}
+              </a>
+            ) : article.title}
+          </h1>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
             <div className="w-8 h-8 rounded-full bg-[#1E40AF] flex items-center justify-center text-white text-xs font-bold">W</div>
             <div>
@@ -123,7 +165,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
           <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden mb-8">
-            <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
+            <SafeImage src={article.coverImage} alt={article.title} fill className="object-cover" />
           </div>
           <AdSlot slot="IN_ARTICLE_TOP" className="mb-6" />
           <div className="prose-article">
@@ -145,6 +187,20 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               )
             }
           </div>
+          {article.source && (
+            <a
+              href={article.source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 transition-colors hover:border-[#1E40AF] hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/70"
+            >
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">Original story</div>
+                <div className="mt-0.5 font-semibold text-gray-900 dark:text-white">Read the full story at {article.source.name}</div>
+              </div>
+              <span className="shrink-0 rounded-full bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white">Read →</span>
+            </a>
+          )}
           <AdSlot slot="IN_ARTICLE_MIDDLE" className="my-8" />
           <div className="flex gap-3 mb-8">
             {["Twitter", "LinkedIn", "WhatsApp"].map((platform) => (
@@ -158,7 +214,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {related.map(r => (
                   <Link key={r.slug} href={`/news/${r.slug}`} className="group">
                     <div className="relative h-32 rounded-xl overflow-hidden mb-2">
-                      <Image src={r.coverImage} alt={r.title} fill className="object-cover group-hover:scale-105 transition-transform" />
+                      <SafeImage src={r.coverImage} alt={r.title} fill className="object-cover group-hover:scale-105 transition-transform" />
                     </div>
                     <p className="text-sm font-semibold group-hover:text-[#1E40AF] transition-colors line-clamp-2">{r.title}</p>
                   </Link>
@@ -174,7 +230,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             {latestArticles.map(a => (
               <Link key={a.slug} href={`/news/${a.slug}`} className="flex gap-3 mb-4 group">
                 <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 shrink-0">
-                  <Image src={a.coverImage} alt={a.title} fill className="object-cover" />
+                  <SafeImage src={a.coverImage} alt={a.title} fill className="object-cover" />
                 </div>
                 <p className="text-xs font-medium leading-snug group-hover:text-[#1E40AF] transition-colors line-clamp-3">{a.title}</p>
               </Link>

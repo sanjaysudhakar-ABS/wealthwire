@@ -1,4 +1,4 @@
-import Image from "next/image"
+import { SafeImage } from "@/components/ui/SafeImage"
 import Link from "next/link"
 import { TrendingUp, TrendingDown, Star, Calculator, Shield, Landmark, PiggyBank, CreditCard, Home, ChevronRight, ArrowRight, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,7 +46,7 @@ export default async function HomePage() {
           <div className="lg:col-span-2">
             <Link href={`/news/${hero.slug}`} className="group block overflow-hidden rounded-2xl relative shadow-sm ring-1 ring-gray-200/60 dark:ring-gray-800">
               <div className="relative h-72 lg:h-[26rem] w-full bg-gray-200 dark:bg-gray-800">
-                <Image src={hero.coverImage} alt={hero.title} fill priority className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                <SafeImage src={hero.coverImage} alt={hero.title} fill priority className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                 <div className="absolute bottom-0 p-6 lg:p-8">
                   <div className="mb-3 flex items-center gap-2">
@@ -75,7 +75,7 @@ export default async function HomePage() {
             {headlines.map((article) => (
               <Link key={article.slug} href={`/news/${article.slug}`} className="group flex gap-3 rounded-xl p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900">
                 <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-800">
-                  <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
+                  <SafeImage src={article.coverImage} alt={article.title} fill className="object-cover" />
                 </div>
                 <div className="min-w-0">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">{article.category}</span>
@@ -123,7 +123,7 @@ export default async function HomePage() {
           {latest.map((article) => (
             <Link key={article.slug} href={`/news/${article.slug}`} className="group">
               <div className="relative mb-3 h-48 overflow-hidden rounded-2xl bg-gray-200 shadow-sm ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-800">
-                <Image src={article.coverImage} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                <SafeImage src={article.coverImage} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
                 <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-bold text-gray-800 backdrop-blur dark:bg-black/60 dark:text-gray-200">{article.category}</span>
               </div>
               <h3 className="text-[15px] font-semibold leading-snug tracking-tight line-clamp-2 transition-colors group-hover:text-[#1E40AF] dark:group-hover:text-blue-400">{article.title}</h3>

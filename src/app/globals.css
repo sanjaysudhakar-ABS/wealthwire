@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Dark mode follows the .dark class set by next-themes, not the OS
+   media query — without this, dark: utilities activate on OS-dark
+   machines even when the site theme is light, mixing both palettes. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 
 :root {
   --background: #ffffff;
