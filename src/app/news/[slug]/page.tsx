@@ -10,27 +10,43 @@ export const revalidate = 3600
 
 const PLACEHOLDER = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800"
 
+// Synced news articles embed their origin as "**Source:** [name](url)".
+// Pull it out so the page can render a prominent link to the original.
+function extractSource(content: string | null) {
+  if (!content) return { source: null, body: content }
+  const m = content.match(/\*\*Source:\*\*\s*\[([^\]]+)\]\(([^)]+)\)/)
+  if (!m) return { source: null, body: content }
+  return {
+    source: { name: m[1], url: m[2] },
+    body: content.replace(m[0], "").trim(),
+  }
+}
+
 async function getArticle(slug: string) {
   try {
     const row = await prisma.article.findUnique({
       where: { slug, status: "PUBLISHED" },
       include: { category: true },
     })
-    if (row) return {
-      title: row.title,
-      slug: row.slug,
-      excerpt: row.excerpt ?? "",
-      content: row.content,
-      coverImage: row.coverImage ?? PLACEHOLDER,
-      category: row.category?.name ?? "Markets",
-      author: "WealthWire India",
-      date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
-      isAI: true,
+    if (row) {
+      const { source, body } = extractSource(row.content)
+      return {
+        title: row.title,
+        slug: row.slug,
+        excerpt: row.excerpt ?? "",
+        content: body,
+        source,
+        coverImage: row.coverImage ?? PLACEHOLDER,
+        category: row.category?.name ?? "Markets",
+        author: source?.name ?? "WealthWire India",
+        date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
+        isAI: true,
+      }
     }
   } catch { /* fallthrough */ }
 
   const mock = mockArticles.find(a => a.slug === slug)
-  if (mock) return { ...mock, content: null, isAI: false }
+  if (mock) return { ...mock, content: null, source: null, isAI: false }
   return null
 }
 
@@ -134,7 +150,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <span className="text-gray-900 dark:text-gray-100">{article.category}</span>
           </nav>
           <span className="text-xs bg-[#1E40AF] text-white px-3 py-1 rounded-full font-medium mb-4 inline-block">{article.category}</span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight mb-4">{article.title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight mb-4">
+            {article.source ? (
+              <a href={article.source.url} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#1E40AF] dark:hover:text-blue-400">
+                {article.title}
+              </a>
+            ) : article.title}
+          </h1>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
             <div className="w-8 h-8 rounded-full bg-[#1E40AF] flex items-center justify-center text-white text-xs font-bold">W</div>
             <div>
@@ -165,6 +187,20 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               )
             }
           </div>
+          {article.source && (
+            <a
+              href={article.source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 transition-colors hover:border-[#1E40AF] hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/70"
+            >
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">Original story</div>
+                <div className="mt-0.5 font-semibold text-gray-900 dark:text-white">Read the full story at {article.source.name}</div>
+              </div>
+              <span className="shrink-0 rounded-full bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white">Read →</span>
+            </a>
+          )}
           <AdSlot slot="IN_ARTICLE_MIDDLE" className="my-8" />
           <div className="flex gap-3 mb-8">
             {["Twitter", "LinkedIn", "WhatsApp"].map((platform) => (
