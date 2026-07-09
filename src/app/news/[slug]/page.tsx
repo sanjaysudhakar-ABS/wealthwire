@@ -1,7 +1,7 @@
 import { Metadata } from "next"
-import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { SafeImage } from "@/components/ui/SafeImage"
 import { AdSlot } from "@/components/ads/AdSlot"
 import { newsArticles as mockArticles } from "@/lib/mock-data"
 import prisma from "@/lib/prisma"
@@ -71,7 +71,29 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: article.title, description: article.excerpt }
 }
 
-// Render markdown-ish content (bold, headings, lists, paragraphs)
+// Render inline markdown: [links](url), **bold**, *italic*
+function renderInline(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = []
+  const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g
+  let last = 0
+  let key = 0
+  let m: RegExpExecArray | null
+  while ((m = pattern.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index))
+    if (m[1] !== undefined) {
+      nodes.push(<a key={key++} href={m[2]} target="_blank" rel="noopener noreferrer">{m[1]}</a>)
+    } else if (m[3] !== undefined) {
+      nodes.push(<strong key={key++}>{m[3]}</strong>)
+    } else {
+      nodes.push(<em key={key++}>{m[4]}</em>)
+    }
+    last = m.index + m[0].length
+  }
+  if (last < text.length) nodes.push(text.slice(last))
+  return nodes
+}
+
+// Render markdown-ish content (headings, lists, paragraphs + inline marks)
 function renderContent(content: string) {
   const lines = content.split("\n")
   const elements: React.ReactNode[] = []
@@ -82,15 +104,13 @@ function renderContent(content: string) {
     if (!trimmed) continue
 
     if (trimmed.startsWith("### ")) {
-      elements.push(<h3 key={key++}>{trimmed.slice(4)}</h3>)
+      elements.push(<h3 key={key++}>{renderInline(trimmed.slice(4))}</h3>)
     } else if (trimmed.startsWith("## ")) {
-      elements.push(<h2 key={key++}>{trimmed.slice(3)}</h2>)
+      elements.push(<h2 key={key++}>{renderInline(trimmed.slice(3))}</h2>)
     } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      elements.push(<li key={key++}>{trimmed.slice(2)}</li>)
-    } else if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
-      elements.push(<p key={key++} className="font-semibold">{trimmed.slice(2, -2)}</p>)
+      elements.push(<li key={key++}>{renderInline(trimmed.slice(2))}</li>)
     } else {
-      elements.push(<p key={key++}>{trimmed}</p>)
+      elements.push(<p key={key++}>{renderInline(trimmed)}</p>)
     }
   }
   return elements
@@ -123,7 +143,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
           <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden mb-8">
-            <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
+            <SafeImage src={article.coverImage} alt={article.title} fill className="object-cover" />
           </div>
           <AdSlot slot="IN_ARTICLE_TOP" className="mb-6" />
           <div className="prose-article">
@@ -158,7 +178,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {related.map(r => (
                   <Link key={r.slug} href={`/news/${r.slug}`} className="group">
                     <div className="relative h-32 rounded-xl overflow-hidden mb-2">
-                      <Image src={r.coverImage} alt={r.title} fill className="object-cover group-hover:scale-105 transition-transform" />
+                      <SafeImage src={r.coverImage} alt={r.title} fill className="object-cover group-hover:scale-105 transition-transform" />
                     </div>
                     <p className="text-sm font-semibold group-hover:text-[#1E40AF] transition-colors line-clamp-2">{r.title}</p>
                   </Link>
@@ -174,7 +194,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             {latestArticles.map(a => (
               <Link key={a.slug} href={`/news/${a.slug}`} className="flex gap-3 mb-4 group">
                 <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 shrink-0">
-                  <Image src={a.coverImage} alt={a.title} fill className="object-cover" />
+                  <SafeImage src={a.coverImage} alt={a.title} fill className="object-cover" />
                 </div>
                 <p className="text-xs font-medium leading-snug group-hover:text-[#1E40AF] transition-colors line-clamp-3">{a.title}</p>
               </Link>

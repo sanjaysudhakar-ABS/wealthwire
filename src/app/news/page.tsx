@@ -1,5 +1,5 @@
 import { Metadata } from "next"
-import Image from "next/image"
+import { SafeImage } from "@/components/ui/SafeImage"
 import Link from "next/link"
 import { AdSlot } from "@/components/ads/AdSlot"
 import { getLatestArticles, getCategories } from "@/lib/articles"
@@ -49,7 +49,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
             {featured && (
               <Link href={`/news/${featured.slug}`} className="group relative mb-6 block overflow-hidden rounded-2xl shadow-sm ring-1 ring-gray-200/60 dark:ring-gray-800">
                 <div className="relative h-64 sm:h-80 w-full bg-gray-200 dark:bg-gray-800">
-                  <Image src={featured.coverImage} alt={featured.title} fill priority className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                  <SafeImage src={featured.coverImage} alt={featured.title} fill priority className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                   <div className="absolute bottom-0 p-6">
                     <span className="mb-2 inline-block rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">{featured.category}</span>
@@ -67,7 +67,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
               {rest.map((article) => (
                 <Link key={article.slug} href={`/news/${article.slug}`} className="group">
                   <div className="relative mb-3 h-48 overflow-hidden rounded-2xl bg-gray-200 shadow-sm ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-800">
-                    <Image src={article.coverImage} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <SafeImage src={article.coverImage} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
                     <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-bold text-gray-800 backdrop-blur dark:bg-black/60 dark:text-gray-200">{article.category}</span>
                   </div>
                   <h3 className="mb-1.5 text-base font-bold leading-snug tracking-tight line-clamp-2 transition-colors group-hover:text-[#1E40AF] dark:group-hover:text-blue-400">{article.title}</h3>
