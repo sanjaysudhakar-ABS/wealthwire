@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Star, Calculator, Shield, Landmark, PiggyBank
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AdSlot } from "@/components/ads/AdSlot"
+import { MarketOverviewLive } from "@/components/markets/MarketOverviewLive"
 import { mutualFunds, ipoList, sectors } from "@/lib/mock-data"
 import { getAllMarketData } from "@/lib/market-api"
 import { getHomepageArticles } from "@/lib/articles"
@@ -91,25 +92,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Market Overview */}
-      <section className="rounded-3xl bg-gradient-to-br from-[#0F172A] to-[#1e293b] p-6 lg:p-8 shadow-lg">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white tracking-tight">Market Overview</h2>
-          <Link href="/markets" className="flex items-center gap-1 text-sm font-medium text-blue-400 hover:underline">View All <ChevronRight size={14} /></Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {marketIndices.map((idx) => (
-            <div key={idx.name} className="rounded-2xl bg-white/5 p-4 text-center ring-1 ring-white/10 backdrop-blur transition-colors hover:bg-white/10">
-              <div className="mb-1 text-xs text-gray-400">{idx.name}</div>
-              <div className="text-base font-bold text-white">{formatINR(idx.value)}</div>
-              <div className={`mt-1 flex items-center justify-center gap-0.5 text-xs font-semibold ${idx.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {idx.changePercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                {idx.changePercent >= 0 ? "+" : ""}{idx.changePercent.toFixed(2)}%
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Market Overview — live, polls every 60s during market hours */}
+      <MarketOverviewLive initialIndices={marketIndices} />
 
       <AdSlot slot="HEADER_BANNER" />
 
