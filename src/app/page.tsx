@@ -1,12 +1,12 @@
 import Image from "next/image"
 import Link from "next/link"
-import { TrendingUp, TrendingDown, Star, Calculator, Shield, Landmark, PiggyBank, CreditCard, Home, ChevronRight, ArrowRight } from "lucide-react"
+import { TrendingUp, TrendingDown, Star, Calculator, Shield, Landmark, PiggyBank, CreditCard, Home, ChevronRight, ArrowRight, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AdUnit } from "@/components/ads/AdUnit"
-import { mutualFunds, ipoList, newsArticles, sectors } from "@/lib/mock-data"
+import { AdSlot } from "@/components/ads/AdSlot"
+import { mutualFunds, ipoList, sectors } from "@/lib/mock-data"
 import { getAllMarketData } from "@/lib/market-api"
+import { getHomepageArticles } from "@/lib/articles"
 
 function formatINR(value: number) {
   return value.toLocaleString("en-IN", { maximumFractionDigits: 2 })
@@ -25,10 +25,8 @@ function StarRating({ rating }: { rating: number }) {
 export const revalidate = 3600
 
 export default async function HomePage() {
-  const { indices: marketIndices, gainers: topGainers, losers: topLosers, goldRates } = await getAllMarketData()
-  const featured = newsArticles[0]
-  const headlines = newsArticles.slice(1, 5)
-  const latestNews = newsArticles.slice(0, 9)
+  const [{ indices: marketIndices, gainers: topGainers, losers: topLosers, goldRates }, { hero, headlines, latest }] =
+    await Promise.all([getAllMarketData(), getHomepageArticles()])
 
   const personalFinanceTopics = [
     { icon: PiggyBank, label: "Savings", desc: "Best savings accounts & FDs", href: "/personal-finance/savings" },
@@ -40,59 +38,71 @@ export default async function HomePage() {
   ]
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-12">
+    <div className="max-w-screen-xl mx-auto px-4 py-8 space-y-14">
 
-      {/* Hero */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Link href={`/news/${featured.slug}`} className="group block rounded-xl overflow-hidden relative">
-            <div className="relative h-72 lg:h-96 w-full bg-gray-200">
-              <Image src={featured.coverImage} alt={featured.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 p-6">
-                <span className="text-xs font-bold bg-red-600 text-white px-2 py-1 rounded mb-2 inline-block">FEATURED</span>
-                <h1 className="text-white text-xl lg:text-2xl font-bold leading-tight group-hover:text-amber-300 transition-colors">
-                  {featured.title}
-                </h1>
-                <p className="text-gray-300 text-sm mt-2 line-clamp-2">{featured.excerpt}</p>
-                <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-                  <span>{featured.author}</span><span>·</span>
-                  <span>{featured.date}</span><span>·</span>
-                  <span>{featured.readTime} read</span>
+      {/* Hero — latest published stories from the content pipeline */}
+      {hero && (
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Link href={`/news/${hero.slug}`} className="group block overflow-hidden rounded-2xl relative shadow-sm ring-1 ring-gray-200/60 dark:ring-gray-800">
+              <div className="relative h-72 lg:h-[26rem] w-full bg-gray-200 dark:bg-gray-800">
+                <Image src={hero.coverImage} alt={hero.title} fill priority className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                <div className="absolute bottom-0 p-6 lg:p-8">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">{hero.category}</span>
+                    {hero.featured && (
+                      <span className="flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+                        <Sparkles size={11} /> Featured
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-white text-2xl lg:text-3xl font-bold leading-tight tracking-tight group-hover:text-amber-200 transition-colors">
+                    {hero.title}
+                  </h1>
+                  {hero.excerpt && <p className="mt-2 hidden text-sm text-gray-300 sm:block line-clamp-2 max-w-2xl">{hero.excerpt}</p>}
+                  <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
+                    <span>{hero.author}</span><span>·</span>
+                    <span>{hero.date}</span><span>·</span>
+                    <span>{hero.readTime} read</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Link>
-        </div>
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Top Headlines</h2>
-          {headlines.map((article) => (
-            <Link key={article.slug} href={`/news/${article.slug}`} className="group flex gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
-              <div className="relative w-20 h-16 rounded-md overflow-hidden bg-gray-200 shrink-0">
-                <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
-              </div>
-              <div>
-                <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded font-medium mb-1 inline-block">{article.category}</span>
-                <p className="text-sm font-semibold leading-snug group-hover:text-[#1E40AF] transition-colors line-clamp-2">{article.title}</p>
-                <p className="text-xs text-gray-400 mt-1">{article.date}</p>
-              </div>
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.15em] text-gray-400">Top Headlines</h2>
+            {headlines.map((article) => (
+              <Link key={article.slug} href={`/news/${article.slug}`} className="group flex gap-3 rounded-xl p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900">
+                <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-800">
+                  <Image src={article.coverImage} alt={article.title} fill className="object-cover" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">{article.category}</span>
+                  <p className="mt-0.5 text-sm font-semibold leading-snug line-clamp-2 group-hover:text-[#1E40AF] dark:group-hover:text-blue-400 transition-colors">{article.title}</p>
+                  <p className="mt-1 text-xs text-gray-400">{article.date}</p>
+                </div>
+              </Link>
+            ))}
+            <Link href="/news" className="mt-auto flex items-center justify-center gap-1 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:border-[#1E40AF] hover:text-[#1E40AF] dark:border-gray-700">
+              All stories <ArrowRight size={14} />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Market Overview */}
-      <section className="bg-[#0F172A] rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-bold text-lg">Market Overview</h2>
-          <Link href="/markets" className="text-blue-400 text-sm font-medium hover:underline flex items-center gap-1">View All <ChevronRight size={14} /></Link>
+      <section className="rounded-3xl bg-gradient-to-br from-[#0F172A] to-[#1e293b] p-6 lg:p-8 shadow-lg">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white tracking-tight">Market Overview</h2>
+          <Link href="/markets" className="flex items-center gap-1 text-sm font-medium text-blue-400 hover:underline">View All <ChevronRight size={14} /></Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {marketIndices.map((idx) => (
-            <div key={idx.name} className="bg-gray-800/50 rounded-xl p-3 text-center">
-              <div className="text-xs text-gray-400 mb-1">{idx.name}</div>
-              <div className="text-white font-bold text-base">{formatINR(idx.value)}</div>
-              <div className={`flex items-center justify-center gap-0.5 text-xs font-semibold mt-1 ${idx.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <div key={idx.name} className="rounded-2xl bg-white/5 p-4 text-center ring-1 ring-white/10 backdrop-blur transition-colors hover:bg-white/10">
+              <div className="mb-1 text-xs text-gray-400">{idx.name}</div>
+              <div className="text-base font-bold text-white">{formatINR(idx.value)}</div>
+              <div className={`mt-1 flex items-center justify-center gap-0.5 text-xs font-semibold ${idx.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {idx.changePercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                 {idx.changePercent >= 0 ? "+" : ""}{idx.changePercent.toFixed(2)}%
               </div>
@@ -101,55 +111,78 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <AdUnit slot="3456789012" className="w-full rounded-xl" />
+      <AdSlot slot="HEADER_BANNER" />
+
+      {/* Latest News — from the automated content pipeline */}
+      <section>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">Latest News</h2>
+          <Link href="/news" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">All News <ChevronRight size={14} /></Link>
+        </div>
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3">
+          {latest.map((article) => (
+            <Link key={article.slug} href={`/news/${article.slug}`} className="group">
+              <div className="relative mb-3 h-48 overflow-hidden rounded-2xl bg-gray-200 shadow-sm ring-1 ring-gray-200/60 dark:bg-gray-800 dark:ring-gray-800">
+                <Image src={article.coverImage} alt={article.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-bold text-gray-800 backdrop-blur dark:bg-black/60 dark:text-gray-200">{article.category}</span>
+              </div>
+              <h3 className="text-[15px] font-semibold leading-snug tracking-tight line-clamp-2 transition-colors group-hover:text-[#1E40AF] dark:group-hover:text-blue-400">{article.title}</h3>
+              {article.excerpt && <p className="mt-1.5 text-sm text-gray-500 line-clamp-2">{article.excerpt}</p>}
+              <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                <span>{article.date}</span><span>·</span><span>{article.readTime} read</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* Top Movers */}
       <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">Top Movers</h2>
-          <Link href="/markets" className="text-[#1E40AF] text-sm font-medium hover:underline flex items-center gap-1">View All <ChevronRight size={14} /></Link>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">Top Movers</h2>
+          <Link href="/markets" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">View All <ChevronRight size={14} /></Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Card className="rounded-2xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="text-emerald-500" size={16} /> Top Gainers</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="text-emerald-500" size={16} /> Top Gainers</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-gray-100 dark:border-gray-800">
-                  <th className="text-left px-4 py-2 text-gray-500 font-medium">Stock</th>
-                  <th className="text-right px-4 py-2 text-gray-500 font-medium">Price</th>
-                  <th className="text-right px-4 py-2 text-gray-500 font-medium">Change</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">Stock</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Price</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Change</th>
                 </tr></thead>
                 <tbody>
                   {topGainers.map((s) => (
-                    <tr key={s.symbol} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                      <td className="px-4 py-2.5"><div className="font-semibold text-xs">{s.symbol}</div><div className="text-xs text-gray-500">{s.name}</div></td>
+                    <tr key={s.symbol} className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800/50 dark:hover:bg-gray-800/30">
+                      <td className="px-4 py-2.5"><div className="text-xs font-semibold">{s.symbol}</div><div className="text-xs text-gray-500">{s.name}</div></td>
                       <td className="px-4 py-2.5 text-right font-medium">₹{formatINR(s.price)}</td>
-                      <td className="px-4 py-2.5 text-right"><span className="text-emerald-600 font-semibold text-xs">+{s.changePercent.toFixed(2)}%</span></td>
+                      <td className="px-4 py-2.5 text-right"><span className="text-xs font-semibold text-emerald-600">+{s.changePercent.toFixed(2)}%</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2"><TrendingDown className="text-red-500" size={16} /> Top Losers</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base"><TrendingDown className="text-red-500" size={16} /> Top Losers</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-gray-100 dark:border-gray-800">
-                  <th className="text-left px-4 py-2 text-gray-500 font-medium">Stock</th>
-                  <th className="text-right px-4 py-2 text-gray-500 font-medium">Price</th>
-                  <th className="text-right px-4 py-2 text-gray-500 font-medium">Change</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">Stock</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Price</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Change</th>
                 </tr></thead>
                 <tbody>
                   {topLosers.map((s) => (
-                    <tr key={s.symbol} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                      <td className="px-4 py-2.5"><div className="font-semibold text-xs">{s.symbol}</div><div className="text-xs text-gray-500">{s.name}</div></td>
+                    <tr key={s.symbol} className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800/50 dark:hover:bg-gray-800/30">
+                      <td className="px-4 py-2.5"><div className="text-xs font-semibold">{s.symbol}</div><div className="text-xs text-gray-500">{s.name}</div></td>
                       <td className="px-4 py-2.5 text-right font-medium">₹{formatINR(s.price)}</td>
-                      <td className="px-4 py-2.5 text-right"><span className="text-red-600 font-semibold text-xs">{s.changePercent.toFixed(2)}%</span></td>
+                      <td className="px-4 py-2.5 text-right"><span className="text-xs font-semibold text-red-600">{s.changePercent.toFixed(2)}%</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -161,12 +194,12 @@ export default async function HomePage() {
 
       {/* Sectors */}
       <section>
-        <h2 className="text-xl font-bold mb-4">Sector Performance</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <h2 className="section-title mb-6">Sector Performance</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           {sectors.map((s) => (
-            <div key={s.name} className={`rounded-xl p-3 text-center cursor-pointer ${s.change >= 0 ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800" : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"}`}>
+            <div key={s.name} className={`rounded-2xl p-3 text-center ring-1 transition-transform hover:-translate-y-0.5 ${s.change >= 0 ? "bg-emerald-50 ring-emerald-200 dark:bg-emerald-900/20 dark:ring-emerald-800" : "bg-red-50 ring-red-200 dark:bg-red-900/20 dark:ring-red-800"}`}>
               <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{s.name}</div>
-              <div className={`text-sm font-bold mt-1 ${s.change >= 0 ? "text-emerald-600" : "text-red-600"}`}>{s.change >= 0 ? "+" : ""}{s.change.toFixed(2)}%</div>
+              <div className={`mt-1 text-sm font-bold ${s.change >= 0 ? "text-emerald-600" : "text-red-600"}`}>{s.change >= 0 ? "+" : ""}{s.change.toFixed(2)}%</div>
             </div>
           ))}
         </div>
@@ -174,52 +207,52 @@ export default async function HomePage() {
 
       {/* Mutual Funds */}
       <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">Mutual Fund Centre</h2>
-          <Link href="/mutual-funds" className="text-[#1E40AF] text-sm font-medium hover:underline flex items-center gap-1">View All Funds <ChevronRight size={14} /></Link>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">Mutual Fund Centre</h2>
+          <Link href="/mutual-funds" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">View All Funds <ChevronRight size={14} /></Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {mutualFunds.slice(0, 4).map((fund) => (
-            <Card key={fund.name} className="hover:shadow-md transition-shadow">
+            <Card key={fund.name} className="rounded-2xl transition-shadow hover:shadow-md">
               <CardContent className="p-4">
-                <span className="text-xs border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded mb-2 inline-block">{fund.category}</span>
-                <h3 className="text-sm font-semibold leading-snug mb-1 line-clamp-2">{fund.name}</h3>
-                <p className="text-xs text-gray-500 mb-3">{fund.amc}</p>
-                <div className="flex items-center justify-between mb-3">
+                <span className="mb-2 inline-block rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-400">{fund.category}</span>
+                <h3 className="mb-1 text-sm font-semibold leading-snug line-clamp-2">{fund.name}</h3>
+                <p className="mb-3 text-xs text-gray-500">{fund.amc}</p>
+                <div className="mb-3 flex items-center justify-between">
                   <div><div className="text-xs text-gray-500">1Y Returns</div><div className="text-xl font-bold text-emerald-600">+{fund.returns1Y}%</div></div>
                   <div className="text-right"><div className="text-xs text-gray-500">Min SIP</div><div className="text-sm font-semibold">₹{fund.minSip}/mo</div></div>
                 </div>
                 <StarRating rating={fund.rating} />
-                <Button size="sm" className="w-full mt-3">Invest Now</Button>
+                <Button size="sm" className="mt-3 w-full rounded-full">Invest Now</Button>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      <AdUnit slot="4567890123" className="w-full rounded-xl" />
+      <AdSlot slot="IN_ARTICLE_MIDDLE" />
 
       {/* IPO Centre */}
       <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">IPO Centre</h2>
-          <Link href="/ipo" className="text-[#1E40AF] text-sm font-medium hover:underline flex items-center gap-1">IPO Calendar <ChevronRight size={14} /></Link>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">IPO Centre</h2>
+          <Link href="/ipo" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">IPO Calendar <ChevronRight size={14} /></Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ipoList.slice(0, 3).map((ipo) => (
-            <Card key={ipo.company} className="hover:shadow-md transition-shadow">
+            <Card key={ipo.company} className="rounded-2xl transition-shadow hover:shadow-md">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-sm leading-tight">{ipo.company}</h3>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ml-2 ${ipo.status === "OPEN" ? "bg-emerald-100 text-emerald-800" : ipo.status === "UPCOMING" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-700"}`}>{ipo.status}</span>
+                <div className="mb-2 flex items-start justify-between">
+                  <h3 className="text-sm font-semibold leading-tight">{ipo.company}</h3>
+                  <span className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${ipo.status === "OPEN" ? "bg-emerald-100 text-emerald-800" : ipo.status === "UPCOMING" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-700"}`}>{ipo.status}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs mt-3">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div><div className="text-gray-500">Price Band</div><div className="font-semibold">₹{ipo.priceMin}–{ipo.priceMax}</div></div>
                   <div><div className="text-gray-500">Issue Size</div><div className="font-semibold">{ipo.issueSize}</div></div>
                   <div><div className="text-gray-500">Open Date</div><div className="font-semibold">{ipo.openDate}</div></div>
                   <div><div className="text-gray-500">GMP</div><div className={`font-semibold ${ipo.gmp > 0 ? "text-emerald-600" : "text-gray-500"}`}>{ipo.gmp > 0 ? `+₹${ipo.gmp}` : "N/A"}</div></div>
                 </div>
-                <Button variant="outline" size="sm" className="w-full mt-3">View Details</Button>
+                <Button variant="outline" size="sm" className="mt-3 w-full rounded-full">View Details</Button>
               </CardContent>
             </Card>
           ))}
@@ -227,21 +260,21 @@ export default async function HomePage() {
       </section>
 
       {/* Calculators */}
-      <section className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">Financial Calculators</h2>
-          <Link href="/calculators" className="text-[#1E40AF] text-sm font-medium hover:underline flex items-center gap-1">All Tools <ChevronRight size={14} /></Link>
+      <section className="rounded-3xl bg-surface p-6 lg:p-8 ring-1 ring-border-soft">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">Financial Calculators</h2>
+          <Link href="/calculators" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">All Tools <ChevronRight size={14} /></Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             { label: "SIP Calculator", desc: "Plan your SIP returns", href: "/calculators/sip", color: "bg-blue-600" },
             { label: "EMI Calculator", desc: "Calculate loan EMI", href: "/calculators/emi", color: "bg-emerald-600" },
             { label: "Lumpsum Calculator", desc: "One-time investment returns", href: "/calculators/lumpsum", color: "bg-amber-600" },
             { label: "Retirement Planner", desc: "Plan your retirement corpus", href: "/calculators/retirement", color: "bg-purple-600" },
           ].map((calc) => (
-            <Link key={calc.label} href={calc.href} className="group bg-white dark:bg-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
-              <div className={`${calc.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}><Calculator size={20} className="text-white" /></div>
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-[#1E40AF] transition-colors">{calc.label}</h3>
+            <Link key={calc.label} href={calc.href} className="group rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+              <div className={`${calc.color} mb-3 flex h-10 w-10 items-center justify-center rounded-xl`}><Calculator size={20} className="text-white" /></div>
+              <h3 className="mb-1 text-sm font-semibold transition-colors group-hover:text-[#1E40AF] dark:group-hover:text-blue-400">{calc.label}</h3>
               <p className="text-xs text-gray-500">{calc.desc}</p>
             </Link>
           ))}
@@ -250,62 +283,40 @@ export default async function HomePage() {
 
       {/* Personal Finance */}
       <section>
-        <h2 className="text-xl font-bold mb-5">Personal Finance</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <h2 className="section-title mb-6">Personal Finance</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {personalFinanceTopics.map((topic) => (
-            <Link key={topic.label} href={topic.href} className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 hover:border-[#1E40AF] hover:shadow-sm transition-all text-center">
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <topic.icon size={20} className="text-[#1E40AF]" />
+            <Link key={topic.label} href={topic.href} className="group rounded-2xl border border-gray-200 bg-white p-4 text-center transition-all hover:-translate-y-0.5 hover:border-[#1E40AF] hover:shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                <topic.icon size={20} className="text-[#1E40AF] dark:text-blue-400" />
               </div>
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-[#1E40AF] transition-colors">{topic.label}</h3>
+              <h3 className="mb-1 text-sm font-semibold transition-colors group-hover:text-[#1E40AF] dark:group-hover:text-blue-400">{topic.label}</h3>
               <p className="text-xs text-gray-500">{topic.desc}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Latest News */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">Latest News</h2>
-          <Link href="/news" className="text-[#1E40AF] text-sm font-medium hover:underline flex items-center gap-1">All News <ChevronRight size={14} /></Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {latestNews.map((article) => (
-            <Link key={article.slug} href={`/news/${article.slug}`} className="group">
-              <div className="relative h-44 rounded-xl overflow-hidden bg-gray-200 mb-3">
-                <Image src={article.coverImage} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-              </div>
-              <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded font-medium mb-2 inline-block">{article.category}</span>
-              <h3 className="font-semibold text-sm leading-snug group-hover:text-[#1E40AF] transition-colors line-clamp-2">{article.title}</h3>
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                <span>{article.author}</span><span>·</span><span>{article.date}</span><span>·</span><span>{article.readTime} read</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <AdUnit slot="5678901234" className="w-full rounded-xl" />
+      <AdSlot slot="IN_ARTICLE_BOTTOM" />
 
       {/* Gold Rates */}
       <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold">Gold & Silver Rates Today</h2>
-          <Link href="/gold" className="text-[#1E40AF] text-sm font-medium hover:underline flex items-center gap-1">View All Cities <ChevronRight size={14} /></Link>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">Gold &amp; Silver Rates Today</h2>
+          <Link href="/gold" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">View All Cities <ChevronRight size={14} /></Link>
         </div>
-        <Card>
+        <Card className="rounded-2xl">
           <CardContent className="p-0">
             <table className="w-full text-sm">
-              <thead><tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">City</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Gold 24K (10g)</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Gold 22K (10g)</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Silver (1kg)</th>
+              <thead><tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400">City</th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">Gold 24K (10g)</th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">Gold 22K (10g)</th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">Silver (1kg)</th>
               </tr></thead>
               <tbody>
                 {goldRates.map((row) => (
-                  <tr key={row.city} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                  <tr key={row.city} className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/30">
                     <td className="px-4 py-3 font-medium">{row.city}</td>
                     <td className="px-4 py-3 text-right font-semibold text-amber-600">₹{formatINR(row.gold24k)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-amber-500">₹{formatINR(row.gold22k)}</td>
@@ -319,36 +330,36 @@ export default async function HomePage() {
       </section>
 
       {/* Newsletter */}
-      <section className="bg-[#1E40AF] rounded-2xl p-8 text-center text-white">
-        <h2 className="text-2xl font-bold mb-2">Get Market Intelligence in Your Inbox</h2>
-        <p className="text-blue-200 mb-6">Get our daily market brief, IPO alerts, and weekly wealth digest delivered to your inbox.</p>
-        <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-          <input type="email" placeholder="Enter your email address" className="flex-1 px-4 py-3 rounded-lg text-gray-900 text-sm focus:outline-none" />
-          <button type="submit" className="bg-[#F59E0B] hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors shrink-0">Subscribe Free</button>
+      <section className="rounded-3xl bg-gradient-to-br from-[#1E40AF] to-[#3B82F6] p-8 lg:p-10 text-center text-white shadow-lg">
+        <h2 className="mb-2 text-2xl font-bold tracking-tight">Get Market Intelligence in Your Inbox</h2>
+        <p className="mb-6 text-blue-100">Daily market brief, IPO alerts, and a weekly wealth digest. Free, forever.</p>
+        <form className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row">
+          <input type="email" placeholder="Enter your email address" className="flex-1 rounded-full px-5 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400" />
+          <button type="submit" className="shrink-0 rounded-full bg-[#F59E0B] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-amber-600">Subscribe Free</button>
         </form>
-        <p className="text-xs text-blue-300 mt-3">No spam. Unsubscribe anytime.</p>
+        <p className="mt-3 text-xs text-blue-200">No spam. Unsubscribe anytime.</p>
       </section>
 
       {/* Premium */}
-      <section className="border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+      <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-8 dark:border-amber-900 dark:from-amber-950/30 dark:to-orange-950/20">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
           <div>
-            <span className="text-xs font-bold bg-amber-500 text-white px-3 py-1 rounded-full mb-3 inline-block">WealthWire Pro</span>
-            <h2 className="text-2xl font-bold mb-4">Unlock Premium Market Intelligence</h2>
+            <span className="mb-3 inline-block rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">WealthWire Pro</span>
+            <h2 className="mb-4 text-2xl font-bold tracking-tight">Unlock Premium Market Intelligence</h2>
             <ul className="space-y-2 text-sm">
               {["Ad-free experience", "Unlimited watchlists & portfolio tracking", "Weekly market outlook reports", "AI-powered investment insights", "Exclusive IPO research notes", "Priority email support"].map((f) => (
-                <li key={f} className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> {f}</li>
+                <li key={f} className="flex items-center gap-2"><span className="font-bold text-emerald-500">✓</span> {f}</li>
               ))}
             </ul>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 text-center shadow-md">
-            <div className="text-4xl font-extrabold text-[#1E40AF] mb-1">₹499<span className="text-base font-normal text-gray-500">/month</span></div>
-            <div className="text-sm text-gray-500 mb-5">or ₹4,499/year (save 25%)</div>
-            <Button size="lg" className="w-full mb-3">Start 7-Day Free Trial</Button>
-            <Link href="/premium" className="text-sm text-[#1E40AF] hover:underline flex items-center justify-center gap-1 mt-2">
+          <div className="rounded-2xl bg-white p-6 text-center shadow-md dark:bg-gray-900">
+            <div className="mb-1 text-4xl font-extrabold text-[#1E40AF] dark:text-blue-400">₹499<span className="text-base font-normal text-gray-500">/month</span></div>
+            <div className="mb-5 text-sm text-gray-500">or ₹4,499/year (save 25%)</div>
+            <Button size="lg" className="mb-3 w-full rounded-full">Start 7-Day Free Trial</Button>
+            <Link href="/premium" className="mt-2 flex items-center justify-center gap-1 text-sm text-[#1E40AF] hover:underline dark:text-blue-400">
               Compare Plans <ArrowRight size={14} />
             </Link>
-            <p className="text-xs text-gray-400 mt-3">No credit card required for trial</p>
+            <p className="mt-3 text-xs text-gray-400">No credit card required for trial</p>
           </div>
         </div>
       </section>
