@@ -1,5 +1,5 @@
 import { type IndexKey, INDEX_CONFIG, type Candle, type ChainRow, getSpot, getIntradayCandles, getDailyCandles, getOptionChain, hasUpstoxToken } from "./upstox"
-import { getGlobalCues, getNewsSentiment, getEventRisk, type Cue, type NewsSentiment, type EventRisk } from "./external"
+import { getGlobalCues, getNewsSentiment, getEventRisk, type Cue, type NewsSentiment } from "./external"
 import { ema, rsi, atr, vwap, adx, pivots, resample, type Pivots } from "./indicators"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
