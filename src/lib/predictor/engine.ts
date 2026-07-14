@@ -89,16 +89,19 @@ function clamp(v: number, lo = -100, hi = 100) {
   return Math.max(lo, Math.min(hi, v))
 }
 
-function technicalSignals(intraday5m: Candle[], daily: Candle[], spot: number): { signals: Signal[]; adxValue: number; atrValue: number; piv: Pivots } {
+function technicalSignals(intraday5m: Candle[], daily: Candle[], spot: number, trending: boolean): { signals: Signal[]; atrValue: number; piv: Pivots } {
   const closes5 = intraday5m.map(c => c.close)
   const signals: Signal[] = []
 
-  // Trend: EMA9 vs EMA21 vs VWAP on 5-min
+  // Trend: EMA9 vs EMA21 vs VWAP on 5-min.
+  // Saturation tuned to real index moves: full score at ~0.15% EMA gap
+  // (~35 pts on Nifty) and ~0.25% VWAP distance — an ordinary strong
+  // trend day should register as strong, not as ±10.
   const e9 = ema(closes5, 9).at(-1)!
   const e21 = ema(closes5, 21).at(-1)!
   const vw = vwap(intraday5m)
-  const emaScore = clamp(((e9 - e21) / spot) * 40000)
-  const vwapScore = clamp(((spot - vw) / spot) * 30000)
+  const emaScore = clamp(((e9 - e21) / spot) * 66000)
+  const vwapScore = clamp(((spot - vw) / spot) * 40000)
   signals.push({
     name: "Trend (EMA 9/21)",
     block: "technical",
@@ -114,15 +117,44 @@ function technicalSignals(intraday5m: Candle[], daily: Candle[], spot: number): 
     reason: `Spot ${spot > vw ? "above" : "below"} VWAP ${vw.toFixed(0)} — ${spot > vw ? "buyers" : "sellers"} in control intraday`,
   })
 
-  // Momentum: RSI-14 on 5-min
+  // Day range position: where spot sits in today's high-low range.
+  // The most direct read of a one-way move — at the lows = -100.
+  const dayHigh = Math.max(...intraday5m.map(c => c.high))
+  const dayLow = Math.min(...intraday5m.map(c => c.low))
+  if (dayHigh > dayLow) {
+    const pos = (spot - dayLow) / (dayHigh - dayLow)
+    signals.push({
+      name: "Day range position",
+      block: "technical",
+      score: clamp((pos - 0.5) * 220),
+      weight: 1.5,
+      reason: `Spot in the ${pos < 0.25 ? "bottom" : pos > 0.75 ? "top" : "middle"} of today's range (${dayLow.toFixed(0)}–${dayHigh.toFixed(0)})`,
+    })
+  }
+
+  // Short-term momentum: 30-minute rate of change (full score at ±0.4%)
+  if (closes5.length > 7) {
+    const roc = (closes5.at(-1)! - closes5.at(-7)!) / spot
+    signals.push({
+      name: "Momentum (30-min)",
+      block: "technical",
+      score: clamp(roc * 25000),
+      weight: 1.5,
+      reason: `${roc >= 0 ? "+" : ""}${(roc * 100).toFixed(2)}% over the last 30 minutes`,
+    })
+  }
+
+  // Momentum: RSI-14 on 5-min. Extremes are faded only in choppy markets —
+  // in a trending regime RSI 22 is confirmation, not a reversal sign.
   const r = rsi(closes5)
-  const rsiScore = clamp((r - 50) * 2.5) * (r > 75 || r < 25 ? 0.4 : 1) // fade extremes
+  const fade = !trending && (r > 75 || r < 25) ? 0.4 : 1
+  const rsiScore = clamp((r - 50) * 2.5) * fade
   signals.push({
     name: "Momentum (RSI-14)",
     block: "technical",
     score: rsiScore,
     weight: 1.5,
-    reason: `RSI ${r.toFixed(0)}${r > 75 ? " — overbought, upside capped" : r < 25 ? " — oversold, downside capped" : ""}`,
+    reason: `RSI ${r.toFixed(0)}${fade < 1 ? (r > 75 ? " — overbought in chop, upside capped" : " — oversold in chop, downside capped") : ""}`,
   })
 
   // Daily structure: close vs 20-day EMA
@@ -136,11 +168,10 @@ function technicalSignals(intraday5m: Candle[], daily: Candle[], spot: number): 
     reason: `Spot ${spot > e20d ? "above" : "below"} 20-day EMA ${e20d.toFixed(0)}`,
   })
 
-  const adxValue = adx(intraday5m)
   const atrValue = atr(intraday5m)
   const piv = pivots(daily.at(-2) ?? daily.at(-1)!)
 
-  return { signals, adxValue, atrValue, piv }
+  return { signals, atrValue, piv }
 }
 
 function derivativeSignals(chain: ChainRow[], spot: number): { signals: Signal[]; callWall: number; putWall: number; atmIVAvg: number } {
@@ -354,23 +385,35 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
   const dataMode: "live" | "demo" = spotLive && intraday1m && chainLive ? "live" : live ? "demo" : "demo"
 
   const intraday5m = resample(candles1m, 5)
-  const tech = technicalSignals(intraday5m, dailyCandles, spot)
+  const adxValue = adx(intraday5m)
+  const regimeTrending = adxValue >= 25
+  const tech = technicalSignals(intraday5m, dailyCandles, spot, regimeTrending)
   const deriv = derivativeSignals(chain.rows, spot)
   const macro = macroSignals(cues, sentiment)
 
+  // Global cues dominate the open but go quiet during Indian hours (US
+  // futures barely move) — after 10:15 IST they shouldn't dilute a live
+  // intraday move, so their weight decays once the session is underway.
+  const istMins = (() => {
+    const ist = new Date(Date.now() + 5.5 * 3600_000)
+    return ist.getUTCHours() * 60 + ist.getUTCMinutes()
+  })()
+  const sessionUnderway = istMins > 615 && istMins < 930 // 10:15–15:30 IST
+
   // Regime reweighting: trending boosts trend/momentum; choppy boosts OI/PCR
-  const trending = tech.adxValue >= 25
+  const trending = regimeTrending
   const signals = [...tech.signals, ...deriv.signals, ...macro].map(s => {
     let w = s.weight
     if (trending && s.block === "technical") w *= 1.5
     if (!trending && s.block === "derivatives") w *= 1.5
+    if (sessionUnderway && s.block === "macro") w *= 0.5
     return { ...s, weight: Math.round(w * 100) / 100 }
   })
 
   const totalWeight = signals.reduce((s, x) => s + x.weight, 0)
   const composite = signals.reduce((s, x) => s + x.score * x.weight, 0) / totalWeight
-  let conviction = Math.min(100, Math.round(Math.abs(composite) * 1.6))
-  if (!trending) conviction = Math.round(conviction * 0.75)
+  let conviction = Math.min(100, Math.round(Math.abs(composite) * 2))
+  if (!trending) conviction = Math.round(conviction * 0.8)
 
   const eventRisk = events?.highImpactToday ?? []
   if (eventRisk.length > 0) conviction = Math.min(conviction, 45)
