@@ -4,8 +4,15 @@
 
 export const PREDICTOR_COOKIE = "predictor_session"
 
+/** Login password: PREDICTOR_PASSWORD, falling back to the site's ADMIN_PASSWORD. */
+export function predictorPassword(): string | null {
+  return process.env.PREDICTOR_PASSWORD ?? process.env.ADMIN_PASSWORD ?? null
+}
+
 export async function sessionToken(): Promise<string | null> {
-  const secret = process.env.PREDICTOR_SECRET
+  // Cookie-signing key: dedicated secret if set, else derived from the password —
+  // rotating either invalidates existing sessions.
+  const secret = process.env.PREDICTOR_SECRET ?? predictorPassword()
   if (!secret) return null
   const key = await crypto.subtle.importKey(
     "raw",
