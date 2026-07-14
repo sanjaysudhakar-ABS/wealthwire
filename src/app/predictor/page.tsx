@@ -11,6 +11,7 @@ type Analysis = {
   regime: string; direction: "bullish" | "bearish" | "neutral"; conviction: number; compositeScore: number
   signals: Signal[]; ideas: TradeIdea[]; noTradeReason: string | null
   eventRisk: string[]; headlines: string[]; dataMode: "live" | "demo"
+  diagnostics?: { sources: Record<string, string | number | boolean>; errors: string[] }
 }
 
 const BLOCK_LABEL: Record<string, string> = { technical: "Technical", derivatives: "Derivatives", macro: "Macro & News" }
@@ -227,6 +228,16 @@ export default function PredictorPage() {
               <ul className="list-disc space-y-1 pl-5 text-sm text-gray-600 dark:text-gray-400">
                 {analysis.headlines.map(h => <li key={h}>{h}</li>)}
               </ul>
+            </div>
+          )}
+
+          {analysis.diagnostics && analysis.diagnostics.errors.length > 0 && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950/40">
+              <h3 className="mb-2 font-bold tracking-tight text-amber-900 dark:text-amber-300">Data source issues this run</h3>
+              <ul className="list-disc space-y-1 pl-5 font-mono text-xs text-amber-800 dark:text-amber-300/90">
+                {analysis.diagnostics.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">These are also recorded in the downloadable log for debugging.</p>
             </div>
           )}
         </div>

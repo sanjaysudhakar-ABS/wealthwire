@@ -1,6 +1,18 @@
 // Global cues (Yahoo), news sentiment (Marketaux), and event risk (Finnhub)
 // for the predictor. All fetchers degrade to null — never throw.
 
+// Per-invocation error collector — drained into each analysis run's
+// diagnostics so external-source failures are debuggable from the log.
+let errors: string[] = []
+function recordError(msg: string) {
+  if (errors.length < 20) errors.push(msg)
+}
+export function drainExternalErrors(): string[] {
+  const out = errors
+  errors = []
+  return out
+}
+
 const YF_BASE = "https://query1.finance.yahoo.com/v8/finance/chart"
 const YF_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -15,13 +27,17 @@ async function yahooChangePercent(symbol: string): Promise<number | null> {
       headers: YF_HEADERS,
       next: { revalidate: 300 },
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      recordError(`yahoo ${symbol}: HTTP ${res.status}`)
+      return null
+    }
     const meta = (await res.json())?.chart?.result?.[0]?.meta
     const price = Number(meta?.regularMarketPrice)
     const prev = Number(meta?.chartPreviousClose ?? meta?.previousClose)
     if (!isFinite(price) || !isFinite(prev) || prev === 0) return null
     return ((price - prev) / prev) * 100
-  } catch {
+  } catch (err) {
+    recordError(`yahoo ${symbol}: ${String(err).slice(0, 120)}`)
     return null
   }
 }
@@ -57,7 +73,10 @@ export async function getNewsSentiment(): Promise<NewsSentiment | null> {
     const publishedAfter = new Date(Date.now() - 24 * 3600_000).toISOString().slice(0, 16)
     const url = `https://api.marketaux.com/v1/news/all?api_token=${token}&countries=in&filter_entities=true&language=en&published_after=${publishedAfter}&limit=20`
     const res = await fetch(url, { next: { revalidate: 1800 } })
-    if (!res.ok) return null
+    if (!res.ok) {
+      recordError(`marketaux: HTTP ${res.status}`)
+      return null
+    }
     const data = await res.json()
     const articles = data?.data
     if (!Array.isArray(articles) || articles.length === 0) return null
@@ -77,7 +96,8 @@ export async function getNewsSentiment(): Promise<NewsSentiment | null> {
       articleCount: articles.length,
       topHeadlines: articles.slice(0, 5).map((a: { title: string }) => a.title),
     }
-  } catch {
+  } catch (err) {
+    recordError(`marketaux: ${String(err).slice(0, 120)}`)
     return null
   }
 }
@@ -93,7 +113,10 @@ export async function getEventRisk(): Promise<EventRisk | null> {
     const res = await fetch(`https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${today}&token=${key}`, {
       next: { revalidate: 3600 },
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      recordError(`finnhub calendar: HTTP ${res.status}`)
+      return null
+    }
     const data = await res.json()
     const events = data?.economicCalendar
     if (!Array.isArray(events)) return { highImpactToday: [] }
@@ -101,7 +124,8 @@ export async function getEventRisk(): Promise<EventRisk | null> {
       .filter((e: { impact?: string; country?: string }) => e.impact === "high" && ["IN", "US"].includes(e.country ?? ""))
       .map((e: { event?: string; country?: string }) => `${e.country}: ${e.event}`)
     return { highImpactToday: [...new Set(high)].slice(0, 5) }
-  } catch {
+  } catch (err) {
+    recordError(`finnhub calendar: ${String(err).slice(0, 120)}`)
     return null
   }
 }
