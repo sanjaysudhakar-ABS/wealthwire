@@ -95,11 +95,13 @@ export async function getOptionChain(index: IndexKey): Promise<{ expiry: string;
 
   const contracts = await get(`/option/contract?instrument_key=${key}`)
   if (!contracts) return null
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10) // IST date
   const expiries = [...new Set((contracts as unknown as Array<{ expiry?: string }>).map(c => c.expiry).filter(Boolean) as string[])]
     .filter(e => e >= today)
     .sort()
-  const expiry = expiries[0]
+  // Expiry-day premiums are gamma-dominated and decay within hours — roll to
+  // the next expiry for suggested entries when today is the expiry.
+  const expiry = (expiries[0] === today && expiries.length > 1) ? expiries[1] : expiries[0]
   if (!expiry) return null
 
   const chain = await get(`/option/chain?instrument_key=${key}&expiry_date=${expiry}`)
