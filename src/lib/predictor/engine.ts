@@ -13,7 +13,7 @@ export type Signal = {
   reason: string
 }
 
-export type TradeLeg = { action: "BUY" | "SELL"; type: "CE" | "PE"; strike: number; premium: number }
+export type TradeLeg = { action: "BUY" | "SELL"; type: "CE" | "PE"; strike: number; premium: number; delta?: number; theta?: number }
 
 export type TradeIdea = {
   strategy: string
@@ -76,8 +76,8 @@ function demoChain(spot: number, step: number): { expiry: string; rows: ChainRow
     const putPrem = Math.max(spot * 0.004 * Math.exp(-dist * 120) + Math.max(strike - spot, 0), 2)
     rows.push({
       strike,
-      call: { ltp: Math.round(callPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i - 2) / 2)), volume: 50000, iv: 12 + Math.abs(i), delta: Math.max(0.05, Math.min(0.95, 0.5 - i * 0.12)) },
-      put: { ltp: Math.round(putPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i + 2) / 2)), volume: 50000, iv: 13 + Math.abs(i), delta: -Math.max(0.05, Math.min(0.95, 0.5 + i * 0.12)) },
+      call: { ltp: Math.round(callPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i - 2) / 2)), volume: 50000, iv: 12 + Math.abs(i), delta: Math.max(0.05, Math.min(0.95, 0.5 - i * 0.12)), theta: -Math.max(2, callPrem * 0.15) },
+      put: { ltp: Math.round(putPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i + 2) / 2)), volume: 50000, iv: 13 + Math.abs(i), delta: -Math.max(0.05, Math.min(0.95, 0.5 + i * 0.12)), theta: -Math.max(2, putPrem * 0.15) },
     })
   }
   const expiry = new Date(Date.now() + 4 * 86400_000).toISOString().slice(0, 10)

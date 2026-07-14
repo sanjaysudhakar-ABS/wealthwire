@@ -67,15 +67,17 @@ export async function getDailyCandles(index: IndexKey, days = 60): Promise<Candl
   return parseCandles(await get(`/historical-candle/${key}/day/${to}/${from}`))
 }
 
+export type ChainSide = { ltp: number; oi: number; volume: number; iv: number; delta: number; theta: number }
+
 export type ChainRow = {
   strike: number
-  call: { ltp: number; oi: number; volume: number; iv: number; delta: number } | null
-  put: { ltp: number; oi: number; volume: number; iv: number; delta: number } | null
+  call: ChainSide | null
+  put: ChainSide | null
 }
 
 type UpstoxOptionSide = {
   market_data?: { ltp?: number; oi?: number; volume?: number }
-  option_greeks?: { iv?: number; delta?: number }
+  option_greeks?: { iv?: number; delta?: number; theta?: number }
 }
 
 function parseSide(side: UpstoxOptionSide | undefined) {
@@ -86,6 +88,7 @@ function parseSide(side: UpstoxOptionSide | undefined) {
     volume: Number(side.market_data.volume ?? 0),
     iv: Number(side.option_greeks?.iv ?? 0),
     delta: Number(side.option_greeks?.delta ?? 0),
+    theta: Number(side.option_greeks?.theta ?? 0),
   }
 }
 
