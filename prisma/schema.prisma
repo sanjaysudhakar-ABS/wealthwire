@@ -273,3 +273,27 @@ model VerificationToken {
   expires    DateTime
   @@unique([identifier, token])
 }
+
+model PredictorRun {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  index         String
+  spot          Float
+  expiry        String?
+  regime        String
+  direction     String
+  conviction    Int
+  composite     Float
+  dataMode      String
+  signals       Json
+  ideas         Json
+  noTradeReason String?
+  eventRisk     Json
+  evaluatedAt   DateTime?
+  spotAtEval    Float?
+  pctMove       Float?
+  outcome       String?
+
+  @@index([createdAt])
+  @@index([evaluatedAt])
+}

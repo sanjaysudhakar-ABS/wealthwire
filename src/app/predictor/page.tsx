@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Activity, TrendingUp, TrendingDown, Minus, AlertTriangle, RefreshCw } from "lucide-react"
 
 type Signal = { name: string; block: string; score: number; weight: number; reason: string }
@@ -15,11 +15,49 @@ type Analysis = {
 
 const BLOCK_LABEL: Record<string, string> = { technical: "Technical", derivatives: "Derivatives", macro: "Macro & News" }
 
+type HistoryRun = {
+  id: string; createdAt: string; index: string; spot: number; direction: string
+  conviction: number; dataMode: string; outcome: string | null; pctMove: number | null
+}
+type History = {
+  runs: HistoryRun[]
+  stats: {
+    evaluated: number
+    directionalCalls: number
+    directionalHits: number
+    perSignal: Array<{ name: string; hits: number; total: number }>
+  } | null
+}
+
+function OutcomeBadge({ outcome }: { outcome: string | null }) {
+  if (!outcome) return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-gray-800">pending</span>
+  const style = outcome === "hit"
+    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+    : outcome === "miss"
+      ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+      : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${style}`}>{outcome}</span>
+}
+
 export default function PredictorPage() {
   const [index, setIndex] = useState<"nifty" | "sensex">("nifty")
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<History | null>(null)
+
+  async function loadHistory() {
+    try {
+      const res = await fetch("/api/predictor/history")
+      if (res.ok) setHistory(await res.json())
+    } catch { /* history is best-effort */ }
+  }
+
+  useEffect(() => {
+    const t = setTimeout(loadHistory, 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function run() {
     setBusy(true)
@@ -32,6 +70,7 @@ export default function PredictorPage() {
       })
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? `HTTP ${res.status}`)
       setAnalysis(await res.json())
+      loadHistory()
     } catch (e) {
       setError(String(e))
     } finally {
@@ -197,6 +236,70 @@ export default function PredictorPage() {
         <div className="rounded-2xl border border-dashed border-gray-300 p-16 text-center text-gray-500 dark:border-gray-700">
           Pick an index and hit <span className="font-semibold">Analyze</span> — the engine pulls live price action, the option chain,
           global cues, and news sentiment, then scores the evidence.
+        </div>
+      )}
+
+      {/* Track record */}
+      {history && history.runs.length > 0 && (
+        <div className="mt-8 space-y-4">
+          <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+              <h3 className="font-bold tracking-tight">Track record</h3>
+              {history.stats && history.stats.directionalCalls > 0 && (
+                <span className="text-sm text-gray-500">
+                  Directional hit rate:{" "}
+                  <span className="font-bold text-gray-900 dark:text-white">
+                    {Math.round((history.stats.directionalHits / history.stats.directionalCalls) * 100)}%
+                  </span>{" "}
+                  ({history.stats.directionalHits}/{history.stats.directionalCalls} scored calls)
+                </span>
+              )}
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800">
+                  <th className="px-5 py-2 font-medium">When</th>
+                  <th className="px-2 py-2 font-medium">Index</th>
+                  <th className="px-2 py-2 font-medium">Call</th>
+                  <th className="px-2 py-2 text-right font-medium">Conviction</th>
+                  <th className="px-2 py-2 text-right font-medium">Move since</th>
+                  <th className="px-5 py-2 text-right font-medium">Outcome</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.runs.map(r => (
+                  <tr key={r.id} className="border-b border-gray-50 dark:border-gray-800/50">
+                    <td className="px-5 py-2 text-gray-500">{new Date(r.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+                    <td className="px-2 py-2 font-semibold capitalize">{r.index}</td>
+                    <td className={`px-2 py-2 font-semibold capitalize ${r.direction === "bullish" ? "text-emerald-600" : r.direction === "bearish" ? "text-red-500" : "text-gray-400"}`}>
+                      {r.direction}{r.dataMode === "demo" ? " (demo)" : ""}
+                    </td>
+                    <td className="px-2 py-2 text-right">{r.conviction}</td>
+                    <td className={`px-2 py-2 text-right ${r.pctMove == null ? "text-gray-400" : r.pctMove >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {r.pctMove == null ? "—" : `${r.pctMove >= 0 ? "+" : ""}${r.pctMove.toFixed(2)}%`}
+                    </td>
+                    <td className="px-5 py-2 text-right"><OutcomeBadge outcome={r.outcome} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {history.stats && history.stats.perSignal.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <h3 className="mb-3 font-bold tracking-tight">Signal hit rates <span className="ml-1 text-xs font-normal text-gray-400">(when the signal leaned ±15 or more)</span></h3>
+              <div className="flex flex-wrap gap-2">
+                {history.stats.perSignal.map(s => {
+                  const rate = Math.round((s.hits / s.total) * 100)
+                  return (
+                    <span key={s.name} className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${rate >= 55 ? "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800" : rate >= 45 ? "bg-gray-50 text-gray-600 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700" : "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-300 dark:ring-red-800"}`}>
+                      {s.name}: {rate}% ({s.hits}/{s.total})
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
