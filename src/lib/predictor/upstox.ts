@@ -11,6 +11,18 @@ export const INDEX_CONFIG: Record<IndexKey, { instrumentKey: string; label: stri
   sensex: { instrumentKey: "BSE_INDEX|SENSEX", label: "Sensex", strikeStep: 100, lotSize: 20 },
 }
 
+// Per-invocation error collector so failures reach the analysis log instead
+// of silently degrading to demo data.
+let errors: string[] = []
+function recordError(msg: string) {
+  if (errors.length < 20) errors.push(msg)
+}
+export function drainUpstoxErrors(): string[] {
+  const out = errors
+  errors = []
+  return out
+}
+
 function headers() {
   const token = process.env.UPSTOX_ACCESS_TOKEN
   if (!token) return null
@@ -20,12 +32,22 @@ function headers() {
 async function get(path: string): Promise<Record<string, unknown> | null> {
   const h = headers()
   if (!h) return null
+  const endpoint = path.split("?")[0]
   try {
     const res = await fetch(`${BASE}${path}`, { headers: h, cache: "no-store" })
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = await res.text().catch(() => "")
+      recordError(`upstox ${endpoint}: HTTP ${res.status} ${body.slice(0, 150)}`)
+      return null
+    }
     const json = await res.json()
-    return json?.status === "success" ? json.data : null
-  } catch {
+    if (json?.status !== "success") {
+      recordError(`upstox ${endpoint}: status=${json?.status} ${JSON.stringify(json?.errors ?? "").slice(0, 150)}`)
+      return null
+    }
+    return json.data
+  } catch (err) {
+    recordError(`upstox ${endpoint}: ${String(err).slice(0, 150)}`)
     return null
   }
 }
@@ -67,7 +89,7 @@ export async function getDailyCandles(index: IndexKey, days = 60): Promise<Candl
   return parseCandles(await get(`/historical-candle/${key}/day/${to}/${from}`))
 }
 
-export type ChainSide = { ltp: number; oi: number; volume: number; iv: number; delta: number; theta: number }
+export type ChainSide = { ltp: number; oi: number; volume: number; iv: number; delta: number; theta: number; gamma: number }
 
 export type ChainRow = {
   strike: number
@@ -77,18 +99,32 @@ export type ChainRow = {
 
 type UpstoxOptionSide = {
   market_data?: { ltp?: number; oi?: number; volume?: number }
-  option_greeks?: { iv?: number; delta?: number; theta?: number }
+  option_greeks?: { iv?: number; delta?: number; theta?: number; gamma?: number }
+}
+
+function num(v: unknown): number {
+  const n = Number(v)
+  return isFinite(n) ? n : 0
 }
 
 function parseSide(side: UpstoxOptionSide | undefined) {
   if (!side?.market_data) return null
+  // Sanitize greeks: IV may arrive as a decimal fraction (0.14) or percent
+  // (14.2) depending on source conventions — normalize to percent. Delta is
+  // clamped to [-1, 1]; anything outside is corrupt data, better zeroed.
+  let iv = num(side.option_greeks?.iv)
+  if (iv > 0 && iv < 1) iv *= 100
+  if (iv < 0 || iv > 200) iv = 0
+  let delta = num(side.option_greeks?.delta)
+  if (Math.abs(delta) > 1) delta = 0
   return {
-    ltp: Number(side.market_data.ltp ?? 0),
-    oi: Number(side.market_data.oi ?? 0),
-    volume: Number(side.market_data.volume ?? 0),
-    iv: Number(side.option_greeks?.iv ?? 0),
-    delta: Number(side.option_greeks?.delta ?? 0),
-    theta: Number(side.option_greeks?.theta ?? 0),
+    ltp: num(side.market_data.ltp),
+    oi: num(side.market_data.oi),
+    volume: num(side.market_data.volume),
+    iv,
+    delta,
+    theta: num(side.option_greeks?.theta),
+    gamma: Math.max(0, num(side.option_greeks?.gamma)),
   }
 }
 

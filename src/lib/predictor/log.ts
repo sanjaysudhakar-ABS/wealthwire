@@ -21,6 +21,7 @@ export async function saveRun(a: Analysis): Promise<void> {
         ideas: a.ideas as unknown as object[],
         noTradeReason: a.noTradeReason,
         eventRisk: a.eventRisk,
+        diagnostics: a.diagnostics as object,
       },
     })
   } catch (err) {

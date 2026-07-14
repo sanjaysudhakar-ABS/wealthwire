@@ -53,6 +53,7 @@ function helpers(ctx: StrategyContext) {
   const prem = (s: number, type: "CE" | "PE") => side(s, type)?.ltp ?? 0
   const delta = (s: number, type: "CE" | "PE") => Math.abs(side(s, type)?.delta ?? 0.5)
   const theta = (s: number, type: "CE" | "PE") => side(s, type)?.theta ?? 0
+  const gamma = (s: number, type: "CE" | "PE") => side(s, type)?.gamma ?? 0
   const move = Math.max(ctx.atrValue * 6, ctx.spot * 0.003)
 
   // Attach greeks so every logged idea carries them for later refinement
@@ -63,6 +64,7 @@ function helpers(ctx: StrategyContext) {
     premium: prem(strike, type),
     delta: Math.round(delta(strike, type) * 100) / 100,
     theta: Math.round(theta(strike, type) * 100) / 100,
+    gamma: gamma(strike, type),
   })
 
   const greeksLive = ctx.chain.some(r => Math.abs(r.call?.delta ?? 0) > 0.01)
@@ -93,7 +95,7 @@ function helpers(ctx: StrategyContext) {
   const capNearAtm = (strike: number, steps: number) =>
     Math.max(atm - steps * ctx.strikeStep, Math.min(atm + steps * ctx.strikeStep, strike))
 
-  return { atm, prem, delta, theta, move, leg, strikeByDelta, capNearAtm, greeksLive }
+  return { atm, prem, delta, theta, gamma, move, leg, strikeByDelta, capNearAtm, greeksLive }
 }
 
 // ─── Catalog ─────────────────────────────────────────────────────────────────
@@ -105,7 +107,7 @@ const CATALOG: StrategyDef[] = [
     priority: ctx =>
       ctx.direction === "neutral" ? 0 : ctx.ivRegime === "rich" ? 4 : 9,
     build: ctx => {
-      const { atm, prem, delta, theta, move, leg, strikeByDelta, capNearAtm } = helpers(ctx)
+      const { atm, prem, delta, theta, gamma, move, leg, strikeByDelta, capNearAtm } = helpers(ctx)
       const bull = ctx.direction === "bullish"
       const type: "CE" | "PE" = bull ? "CE" : "PE"
       // Strike by delta: ~0.50 for moderate conviction, ~0.40 for high
@@ -120,12 +122,18 @@ const CATALOG: StrategyDef[] = [
       const targetSpot = bull ? Math.min(ctx.spot + move, ctx.callWall) : Math.max(ctx.spot - move, ctx.putWall)
       const d = delta(strike, type)
       const th = theta(strike, type)
+      const g = gamma(strike, type)
       const thetaNote = th < 0 ? `; theta burn ≈ ₹${Math.abs(round2(th))}/day` : ""
+      // Premium estimate: delta + gamma second-order term for the move,
+      // minus one day of theta decay — delta alone understates gains on a
+      // favourable move and overstates them once decay is counted.
+      const m = Math.abs(targetSpot - ctx.spot)
+      const targetPrem = Math.max(round2(p + d * m + 0.5 * g * m * m - Math.abs(th)), round2(p * 1.15))
       return {
         strategy: bull ? "Long Call" : "Long Put",
         legs: [leg("BUY", type, strike)],
         entryNote: `Enter near ₹${round2(p)} (delta ${d.toFixed(2)}${thetaNote}); better entry if spot retests ${bull ? "support" : "resistance"} ${bull ? ctx.putWall : ctx.callWall}`,
-        target: `₹${round2(p + Math.abs(targetSpot - ctx.spot) * d)} (spot → ${targetSpot.toFixed(0)})`,
+        target: `₹${targetPrem} (spot → ${targetSpot.toFixed(0)}, incl. gamma & 1-day theta)`,
         stopLoss: `₹${round2(Math.max(p - Math.abs(ctx.spot - invalidation) * d, p * 0.7))} (spot ${bull ? "below" : "above"} ${invalidation.toFixed(0)})`,
         rationale: `${ctx.conviction > 70 ? "High" : "Moderate"} conviction ${ctx.direction} view with ${ctx.ivRegime} IV — strike picked at ~${targetDelta.toFixed(1)} delta`,
         maxRisk: `Premium paid: ₹${round2(p)} × lot`,

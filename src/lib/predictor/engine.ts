@@ -1,5 +1,5 @@
-import { type IndexKey, INDEX_CONFIG, type Candle, type ChainRow, getSpot, getIntradayCandles, getDailyCandles, getOptionChain, hasUpstoxToken } from "./upstox"
-import { getGlobalCues, getNewsSentiment, getEventRisk, type Cue, type NewsSentiment } from "./external"
+import { type IndexKey, INDEX_CONFIG, type Candle, type ChainRow, getSpot, getIntradayCandles, getDailyCandles, getOptionChain, hasUpstoxToken, drainUpstoxErrors } from "./upstox"
+import { getGlobalCues, getNewsSentiment, getEventRisk, drainExternalErrors, type Cue, type NewsSentiment } from "./external"
 import { ema, rsi, atr, vwap, adx, pivots, resample, type Pivots } from "./indicators"
 import { selectIdeas, ivRegimeOf } from "./strategies"
 
@@ -13,7 +13,7 @@ export type Signal = {
   reason: string
 }
 
-export type TradeLeg = { action: "BUY" | "SELL"; type: "CE" | "PE"; strike: number; premium: number; delta?: number; theta?: number }
+export type TradeLeg = { action: "BUY" | "SELL"; type: "CE" | "PE"; strike: number; premium: number; delta?: number; theta?: number; gamma?: number }
 
 export type TradeIdea = {
   strategy: string
@@ -41,6 +41,10 @@ export type Analysis = {
   eventRisk: string[]
   headlines: string[]
   dataMode: "live" | "demo"
+  diagnostics: {
+    sources: Record<string, string | number | boolean>
+    errors: string[]
+  }
 }
 
 // ─── Demo data (used when UPSTOX_ACCESS_TOKEN is absent) ────────────────────
@@ -76,8 +80,8 @@ function demoChain(spot: number, step: number): { expiry: string; rows: ChainRow
     const putPrem = Math.max(spot * 0.004 * Math.exp(-dist * 120) + Math.max(strike - spot, 0), 2)
     rows.push({
       strike,
-      call: { ltp: Math.round(callPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i - 2) / 2)), volume: 50000, iv: 12 + Math.abs(i), delta: Math.max(0.05, Math.min(0.95, 0.5 - i * 0.12)), theta: -Math.max(2, callPrem * 0.15) },
-      put: { ltp: Math.round(putPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i + 2) / 2)), volume: 50000, iv: 13 + Math.abs(i), delta: -Math.max(0.05, Math.min(0.95, 0.5 + i * 0.12)), theta: -Math.max(2, putPrem * 0.15) },
+      call: { ltp: Math.round(callPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i - 2) / 2)), volume: 50000, iv: 12 + Math.abs(i), delta: Math.max(0.05, Math.min(0.95, 0.5 - i * 0.12)), theta: -Math.max(2, callPrem * 0.15), gamma: 0.0008 * Math.exp(-Math.abs(i) / 3) },
+      put: { ltp: Math.round(putPrem), oi: Math.round(80000 * Math.exp(-Math.abs(i + 2) / 2)), volume: 50000, iv: 13 + Math.abs(i), delta: -Math.max(0.05, Math.min(0.95, 0.5 + i * 0.12)), theta: -Math.max(2, putPrem * 0.15), gamma: 0.0008 * Math.exp(-Math.abs(i) / 3) },
     })
   }
   const expiry = new Date(Date.now() + 4 * 86400_000).toISOString().slice(0, 10)
@@ -339,6 +343,23 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
       : "Option chain data insufficient to price entries"
   }
 
+  const greeksLive = chain.rows.some(r => Math.abs(r.call?.delta ?? 0) > 0.01)
+  const diagnostics = {
+    sources: {
+      upstoxTokenSet: live,
+      spotLive: Boolean(spotLive),
+      intradayCandles: intraday1m?.length ?? 0,
+      dailyCandles: daily?.length ?? 0,
+      chainRows: chainLive?.rows.length ?? 0,
+      chainExpiry: chain.expiry,
+      greeksLive,
+      globalCues: `${cues.length}/7`,
+      sentimentArticles: sentiment?.articleCount ?? 0,
+      economicCalendar: events !== null,
+    },
+    errors: [...drainUpstoxErrors(), ...drainExternalErrors()],
+  }
+
   return {
     index,
     label: cfg.label,
@@ -355,5 +376,6 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
     eventRisk,
     headlines: sentiment?.topHeadlines ?? [],
     dataMode,
+    diagnostics,
   }
 }
