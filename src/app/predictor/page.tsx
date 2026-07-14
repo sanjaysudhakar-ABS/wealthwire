@@ -5,7 +5,7 @@ import { Activity, TrendingUp, TrendingDown, Minus, AlertTriangle, RefreshCw } f
 
 type Signal = { name: string; block: string; score: number; weight: number; reason: string }
 type TradeLeg = { action: "BUY" | "SELL"; type: "CE" | "PE"; strike: number; premium: number }
-type TradeIdea = { strategy: string; legs: TradeLeg[]; entryNote: string; target: string; stopLoss: string; rationale: string; maxRisk: string }
+type TradeIdea = { strategy: string; expiry?: string; legs: TradeLeg[]; entryNote: string; target: string; stopLoss: string; rationale: string; maxRisk: string }
 type Analysis = {
   label: string; timestamp: string; spot: number; expiry: string | null
   regime: string; direction: "bullish" | "bearish" | "neutral"; conviction: number; compositeScore: number
@@ -171,7 +171,14 @@ export default function PredictorPage() {
               {analysis.ideas.map((idea, i) => (
                 <div key={i} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-bold tracking-tight">{idea.strategy}</h3>
+                    <div>
+                      <h3 className="font-bold tracking-tight">{idea.strategy}</h3>
+                      {idea.expiry && (
+                        <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                          Expiry: {new Date(idea.expiry + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })} — quote prices are for this expiry
+                        </span>
+                      )}
+                    </div>
                     <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">#{i + 1}</span>
                   </div>
                   <div className="mb-3 space-y-1.5">

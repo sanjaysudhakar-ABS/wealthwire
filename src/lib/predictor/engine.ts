@@ -17,6 +17,7 @@ export type TradeLeg = { action: "BUY" | "SELL"; type: "CE" | "PE"; strike: numb
 
 export type TradeIdea = {
   strategy: string
+  expiry: string
   legs: TradeLeg[]
   entryNote: string
   target: string
@@ -323,6 +324,7 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
     direction,
     conviction,
     spot,
+    expiry: chain.expiry,
     chain: chain.rows,
     strikeStep: cfg.strikeStep,
     callWall: deriv.callWall,
