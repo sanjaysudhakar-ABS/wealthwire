@@ -245,15 +245,24 @@ export default function PredictorPage() {
           <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
               <h3 className="font-bold tracking-tight">Track record</h3>
-              {history.stats && history.stats.directionalCalls > 0 && (
-                <span className="text-sm text-gray-500">
-                  Directional hit rate:{" "}
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    {Math.round((history.stats.directionalHits / history.stats.directionalCalls) * 100)}%
-                  </span>{" "}
-                  ({history.stats.directionalHits}/{history.stats.directionalCalls} scored calls)
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                {history.stats && history.stats.directionalCalls > 0 && (
+                  <span className="text-sm text-gray-500">
+                    Directional hit rate:{" "}
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {Math.round((history.stats.directionalHits / history.stats.directionalCalls) * 100)}%
+                    </span>{" "}
+                    ({history.stats.directionalHits}/{history.stats.directionalCalls} scored calls)
+                  </span>
+                )}
+                <a
+                  href="/api/predictor/export"
+                  download
+                  className="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 transition-colors hover:border-[#1E40AF] hover:text-[#1E40AF] dark:border-gray-600 dark:text-gray-300"
+                >
+                  Download log (JSON)
+                </a>
+              </div>
             </div>
             <table className="w-full text-sm">
               <thead>
