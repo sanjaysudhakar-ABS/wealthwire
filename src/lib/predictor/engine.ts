@@ -342,9 +342,11 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
   ])
 
   const demoSpot = index === "nifty" ? 24500 : 80500
-  const spot = spotLive ?? demoSpot
+  let spot = spotLive ?? demoSpot
   const candles1m = intraday1m ?? demoCandles(spot, 240, 60_000)
   const dailyCandles = daily ?? demoCandles(spot, 60, 86400_000)
+  // Demo spot must sit where the demo candles ended, or signals contradict artificially
+  if (!spotLive) spot = candles1m[candles1m.length - 1].close
   const chain = chainLive ?? demoChain(spot, cfg.strikeStep)
   const dataMode: "live" | "demo" = spotLive && intraday1m && chainLive ? "live" : live ? "demo" : "demo"
 
