@@ -15,6 +15,7 @@ export type StrategyContext = {
   direction: "bullish" | "bearish" | "neutral"
   conviction: number
   spot: number
+  expiry: string
   chain: ChainRow[]
   strikeStep: number
   callWall: number
@@ -26,10 +27,12 @@ export type StrategyContext = {
   eventDay: boolean
 }
 
+type BuiltIdea = Omit<TradeIdea, "expiry">
+
 type StrategyDef = {
   name: string
   priority: (ctx: StrategyContext) => number // 0 = not applicable
-  build: (ctx: StrategyContext) => TradeIdea | null
+  build: (ctx: StrategyContext) => BuiltIdea | null
 }
 
 export function ivRegimeOf(atmIVAvg: number): IVRegime {
@@ -296,6 +299,7 @@ export function selectIdeas(ctx: StrategyContext): TradeIdea[] {
     .filter(x => x.priority > 0)
     .sort((a, b) => b.priority - a.priority)
     .map(x => x.def.build(ctx))
-    .filter((idea): idea is TradeIdea => idea !== null)
+    .filter((idea): idea is BuiltIdea => idea !== null)
+    .map(idea => ({ ...idea, expiry: ctx.expiry }))
     .slice(0, 3)
 }
