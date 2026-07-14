@@ -128,8 +128,11 @@ function parseSide(side: UpstoxOptionSide | undefined) {
   }
 }
 
-/** Option chain with Greeks for the nearest expiry on/after today. */
-export async function getOptionChain(index: IndexKey): Promise<{ expiry: string; rows: ChainRow[] } | null> {
+export type ExpiryMode = "current" | "next"
+
+/** Option chain with Greeks. "current" = nearest expiry including today;
+ *  "next" = skip today's expiry (calmer gamma, more time value). */
+export async function getOptionChain(index: IndexKey, mode: ExpiryMode = "current"): Promise<{ expiry: string; rows: ChainRow[] } | null> {
   const key = encodeURIComponent(INDEX_CONFIG[index].instrumentKey)
 
   const contracts = await get(`/option/contract?instrument_key=${key}`)
@@ -138,9 +141,7 @@ export async function getOptionChain(index: IndexKey): Promise<{ expiry: string;
   const expiries = [...new Set((contracts as unknown as Array<{ expiry?: string }>).map(c => c.expiry).filter(Boolean) as string[])]
     .filter(e => e >= today)
     .sort()
-  // Expiry-day premiums are gamma-dominated and decay within hours — roll to
-  // the next expiry for suggested entries when today is the expiry.
-  const expiry = (expiries[0] === today && expiries.length > 1) ? expiries[1] : expiries[0]
+  const expiry = (mode === "next" && expiries[0] === today && expiries.length > 1) ? expiries[1] : expiries[0]
   if (!expiry) return null
 
   const chain = await get(`/option/chain?instrument_key=${key}&expiry_date=${expiry}`)

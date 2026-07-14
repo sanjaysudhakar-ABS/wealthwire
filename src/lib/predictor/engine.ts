@@ -1,4 +1,4 @@
-import { type IndexKey, INDEX_CONFIG, type Candle, type ChainRow, getSpot, getIntradayCandles, getDailyCandles, getOptionChain, hasUpstoxToken, drainUpstoxErrors } from "./upstox"
+import { type IndexKey, INDEX_CONFIG, type Candle, type ChainRow, type ExpiryMode, getSpot, getIntradayCandles, getDailyCandles, getOptionChain, hasUpstoxToken, drainUpstoxErrors } from "./upstox"
 import { getGlobalCues, getNewsSentiment, getEventRisk, drainExternalErrors, type Cue, type NewsSentiment } from "./external"
 import { ema, rsi, atr, vwap, adx, pivots, resample, type Pivots } from "./indicators"
 import { selectIdeas, ivRegimeOf } from "./strategies"
@@ -261,7 +261,7 @@ function macroSignals(cues: Cue[], sentiment: NewsSentiment | null): Signal[] {
 
 // ─── Orchestrator ────────────────────────────────────────────────────────────
 
-export async function analyze(index: IndexKey): Promise<Analysis> {
+export async function analyze(index: IndexKey, expiryMode: ExpiryMode = "current"): Promise<Analysis> {
   const cfg = INDEX_CONFIG[index]
   const live = hasUpstoxToken()
 
@@ -269,7 +269,7 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
     getSpot(index),
     getIntradayCandles(index),
     getDailyCandles(index),
-    getOptionChain(index),
+    getOptionChain(index, expiryMode),
     getGlobalCues(),
     getNewsSentiment(),
     getEventRisk(),
@@ -335,6 +335,14 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
     piv: tech.piv,
     eventDay: eventRisk.length > 0,
   })
+
+  // Same-day expiry contracts decay by the hour — flag it on every idea
+  const todayIST = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10)
+  if (chain.expiry === todayIST) {
+    for (const idea of ideas) {
+      idea.rationale += " · ⚠ Expiry-day contract: premiums decay hourly, intraday management only"
+    }
+  }
 
   let noTradeReason: string | null = null
   if (ideas.length === 0) {
