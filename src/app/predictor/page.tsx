@@ -42,6 +42,7 @@ function OutcomeBadge({ outcome }: { outcome: string | null }) {
 
 export default function PredictorPage() {
   const [index, setIndex] = useState<"nifty" | "sensex">("nifty")
+  const [expiryMode, setExpiryMode] = useState<"current" | "next">("current")
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +68,7 @@ export default function PredictorPage() {
       const res = await fetch("/api/predictor/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ index }),
+        body: JSON.stringify({ index, expiry: expiryMode }),
       })
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? `HTTP ${res.status}`)
       setAnalysis(await res.json())
@@ -105,6 +106,17 @@ export default function PredictorPage() {
               className={`rounded-full px-5 py-1.5 text-sm font-semibold transition-colors ${index === ix ? "bg-[#1E40AF] text-white" : "text-gray-600 dark:text-gray-300"}`}
             >
               {ix === "nifty" ? "Nifty 50" : "Sensex"}
+            </button>
+          ))}
+        </div>
+        <div className="flex rounded-full border border-gray-200 p-1 dark:border-gray-700">
+          {(["current", "next"] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => setExpiryMode(m)}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${expiryMode === m ? "bg-amber-500 text-white" : "text-gray-600 dark:text-gray-300"}`}
+            >
+              {m === "current" ? "Current expiry" : "Next expiry"}
             </button>
           ))}
         </div>
