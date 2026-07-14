@@ -1,6 +1,7 @@
 import { type IndexKey, INDEX_CONFIG, type Candle, type ChainRow, getSpot, getIntradayCandles, getDailyCandles, getOptionChain, hasUpstoxToken } from "./upstox"
 import { getGlobalCues, getNewsSentiment, getEventRisk, type Cue, type NewsSentiment } from "./external"
 import { ema, rsi, atr, vwap, adx, pivots, resample, type Pivots } from "./indicators"
+import { selectIdeas, ivRegimeOf } from "./strategies"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -253,112 +254,6 @@ function macroSignals(cues: Cue[], sentiment: NewsSentiment | null): Signal[] {
   return signals
 }
 
-// ─── Strategy selection (from the options-strategy canon) ───────────────────
-
-function round2(n: number) {
-  return Math.round(n * 20) / 20 // option ticks of 0.05
-}
-
-function buildIdeas(params: {
-  direction: "bullish" | "bearish"
-  conviction: number
-  spot: number
-  chain: ChainRow[]
-  strikeStep: number
-  callWall: number
-  putWall: number
-  atmIVAvg: number
-  atrValue: number
-  piv: Pivots
-}): TradeIdea[] {
-  const { direction, conviction, spot, chain, strikeStep, callWall, putWall, atmIVAvg, atrValue, piv } = params
-  const ideas: TradeIdea[] = []
-  const bull = direction === "bullish"
-  const atm = Math.round(spot / strikeStep) * strikeStep
-  const byStrike = (s: number) => chain.find(r => r.strike === s)
-  const prem = (s: number, type: "CE" | "PE") => (type === "CE" ? byStrike(s)?.call?.ltp : byStrike(s)?.put?.ltp) ?? 0
-
-  const highIV = atmIVAvg > 16 // premium expensive → prefer spreads over naked longs
-  const move = Math.max(atrValue * 6, spot * 0.003) // expected favourable spot move
-  const invalidation = bull ? Math.min(putWall, piv.s1) : Math.max(callWall, piv.r1)
-  const targetSpot = bull ? Math.min(spot + move, callWall) : Math.max(spot - move, putWall)
-
-  // Idea 1 — directional long option (ATM or 1-OTM by conviction)
-  const otmSteps = conviction > 70 ? 1 : 0
-  const strike1 = bull ? atm + otmSteps * strikeStep : atm - otmSteps * strikeStep
-  const type1: "CE" | "PE" = bull ? "CE" : "PE"
-  const p1 = prem(strike1, type1)
-  if (p1 > 0) {
-    const delta = Math.abs((bull ? byStrike(strike1)?.call?.delta : byStrike(strike1)?.put?.delta) ?? 0.5)
-    const targetPrem = round2(p1 + Math.abs(targetSpot - spot) * delta)
-    const slPrem = round2(Math.max(p1 - Math.abs(spot - invalidation) * delta, p1 * 0.7))
-    ideas.push({
-      strategy: bull ? "Long Call" : "Long Put",
-      legs: [{ action: "BUY", type: type1, strike: strike1, premium: p1 }],
-      entryNote: `Enter near ₹${round2(p1)}; better entry if spot retests ${bull ? "support" : "resistance"} ${bull ? putWall : callWall}`,
-      target: `₹${targetPrem} (spot → ${targetSpot.toFixed(0)})`,
-      stopLoss: `₹${slPrem} (spot ${bull ? "below" : "above"} ${invalidation.toFixed(0)})`,
-      rationale: `${conviction > 70 ? "High" : "Moderate"} conviction ${direction} view; ${otmSteps ? "1-OTM for leverage" : "ATM for delta"}`,
-      maxRisk: `Premium paid: ₹${round2(p1)} × lot`,
-    })
-  }
-
-  // Idea 2 — debit spread (preferred when IV is rich; from the strategy booklet canon)
-  const longStrike = atm
-  const shortStrike = bull ? Math.min(atm + 2 * strikeStep, Math.round(callWall / strikeStep) * strikeStep) : Math.max(atm - 2 * strikeStep, Math.round(putWall / strikeStep) * strikeStep)
-  const pLong = prem(longStrike, type1)
-  const pShort = prem(shortStrike, type1)
-  if (pLong > 0 && pShort > 0 && shortStrike !== longStrike) {
-    const debit = round2(pLong - pShort)
-    const maxGain = Math.abs(shortStrike - longStrike) - debit
-    ideas.push({
-      strategy: bull ? "Bull Call Spread" : "Bear Put Spread",
-      legs: [
-        { action: "BUY", type: type1, strike: longStrike, premium: pLong },
-        { action: "SELL", type: type1, strike: shortStrike, premium: pShort },
-      ],
-      entryNote: `Net debit ≈ ₹${debit}${highIV ? " — spread preferred: ATM IV rich" : ""}`,
-      target: `₹${round2(debit + maxGain * 0.6)} (60% of max value; spot → ${shortStrike})`,
-      stopLoss: `₹${round2(debit * 0.5)} (half the debit)`,
-      rationale: `Defined-risk ${direction} play capped at the ${bull ? "call" : "put"} OI wall ${shortStrike}`,
-      maxRisk: `Net debit: ₹${debit} × lot (max loss)`,
-    })
-  }
-
-  return ideas.slice(0, conviction > 60 ? 3 : 2)
-}
-
-function neutralIdea(spot: number, chain: ChainRow[], strikeStep: number, callWall: number, putWall: number, atmIVAvg: number): TradeIdea | null {
-  // Neutral + rich IV → short iron condor inside the OI walls (defined risk)
-  if (atmIVAvg < 14) return null
-  const atm = Math.round(spot / strikeStep) * strikeStep
-  const sellCall = Math.round(callWall / strikeStep) * strikeStep
-  const sellPut = Math.round(putWall / strikeStep) * strikeStep
-  if (sellCall <= atm || sellPut >= atm) return null
-  const byStrike = (s: number) => chain.find(r => r.strike === s)
-  const pc = byStrike(sellCall)?.call?.ltp ?? 0
-  const pp = byStrike(sellPut)?.put?.ltp ?? 0
-  const hedgeCall = byStrike(sellCall + strikeStep)?.call?.ltp ?? 0
-  const hedgePut = byStrike(sellPut - strikeStep)?.put?.ltp ?? 0
-  if (!pc || !pp || !hedgeCall || !hedgePut) return null
-  const credit = round2(pc + pp - hedgeCall - hedgePut)
-  if (credit <= 0) return null
-  return {
-    strategy: "Iron Condor",
-    legs: [
-      { action: "SELL", type: "CE", strike: sellCall, premium: pc },
-      { action: "BUY", type: "CE", strike: sellCall + strikeStep, premium: hedgeCall },
-      { action: "SELL", type: "PE", strike: sellPut, premium: pp },
-      { action: "BUY", type: "PE", strike: sellPut - strikeStep, premium: hedgePut },
-    ],
-    entryNote: `Net credit ≈ ₹${credit}; range play between OI walls ${sellPut}–${sellCall}`,
-    target: `Keep 50–60% of credit (₹${round2(credit * 0.5)})`,
-    stopLoss: `Exit if spot closes beyond ${sellPut} or ${sellCall}`,
-    rationale: "No directional edge + elevated IV → sell the range the option writers themselves are defending",
-    maxRisk: `₹${round2(strikeStep - credit)} × lot (width − credit)`,
-  }
-}
-
 // ─── Orchestrator ────────────────────────────────────────────────────────────
 
 export async function analyze(index: IndexKey): Promise<Analysis> {
@@ -420,29 +315,28 @@ export async function analyze(index: IndexKey): Promise<Analysis> {
 
   const direction: Analysis["direction"] = conviction < 40 ? "neutral" : composite > 0 ? "bullish" : "bearish"
 
-  let ideas: TradeIdea[] = []
-  let noTradeReason: string | null = null
+  const ideas = selectIdeas({
+    direction,
+    conviction,
+    spot,
+    chain: chain.rows,
+    strikeStep: cfg.strikeStep,
+    callWall: deriv.callWall,
+    putWall: deriv.putWall,
+    atmIVAvg: deriv.atmIVAvg,
+    ivRegime: ivRegimeOf(deriv.atmIVAvg),
+    atrValue: tech.atrValue,
+    piv: tech.piv,
+    eventDay: eventRisk.length > 0,
+  })
 
-  if (direction === "neutral") {
-    const condor = neutralIdea(spot, chain.rows, cfg.strikeStep, deriv.callWall, deriv.putWall, deriv.atmIVAvg)
-    if (condor) ideas = [condor]
-    else noTradeReason = eventRisk.length > 0
-      ? `Conviction capped — high-impact events today (${eventRisk[0]}); evidence too mixed for a directional trade`
-      : "Signals are mixed and IV is not rich enough to sell — no edge, no trade"
-  } else {
-    ideas = buildIdeas({
-      direction,
-      conviction,
-      spot,
-      chain: chain.rows,
-      strikeStep: cfg.strikeStep,
-      callWall: deriv.callWall,
-      putWall: deriv.putWall,
-      atmIVAvg: deriv.atmIVAvg,
-      atrValue: tech.atrValue,
-      piv: tech.piv,
-    })
-    if (ideas.length === 0) noTradeReason = "Option chain data insufficient to price entries"
+  let noTradeReason: string | null = null
+  if (ideas.length === 0) {
+    noTradeReason = direction === "neutral"
+      ? eventRisk.length > 0
+        ? `Conviction capped — high-impact events today (${eventRisk[0]}); IV already rich, so no volatility buy either`
+        : "Signals are mixed and IV is not rich enough to sell — no edge, no trade"
+      : "Option chain data insufficient to price entries"
   }
 
   return {
