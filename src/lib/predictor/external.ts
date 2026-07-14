@@ -102,30 +102,56 @@ export async function getNewsSentiment(): Promise<NewsSentiment | null> {
   }
 }
 
-export type EventRisk = { highImpactToday: string[] }
+export type EventRisk = { highImpactToday: string[]; source: string }
 
-/** Finnhub economic calendar — high-impact releases today (IST date). */
-export async function getEventRisk(): Promise<EventRisk | null> {
+// Known high-impact dates that need no API: the FOMC publishes its meeting
+// schedule years ahead. Decisions land ~11:30pm IST, so the Indian market
+// reaction day is the following session. Extend this map as schedules for
+// RBI MPC / Union Budget are announced.
+const STATIC_HIGH_IMPACT: Record<string, string> = {
+  "2026-07-29": "US: FOMC rate decision (announced overnight IST)",
+  "2026-07-30": "IN: Market reacting to overnight FOMC decision",
+  "2026-09-16": "US: FOMC rate decision (announced overnight IST)",
+  "2026-09-17": "IN: Market reacting to overnight FOMC decision",
+  "2026-10-28": "US: FOMC rate decision (announced overnight IST)",
+  "2026-10-29": "IN: Market reacting to overnight FOMC decision",
+  "2026-12-09": "US: FOMC rate decision (announced overnight IST)",
+  "2026-12-10": "IN: Market reacting to overnight FOMC decision",
+}
+
+/** High-impact events today (IST): built-in FOMC schedule, plus Finnhub's
+ *  economic calendar when the plan allows it (403 on the free tier). */
+export async function getEventRisk(): Promise<EventRisk> {
+  const today = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10)
+  const events: string[] = STATIC_HIGH_IMPACT[today] ? [STATIC_HIGH_IMPACT[today]] : []
+  let source = "built-in schedule"
+
   const key = process.env.FINNHUB_API_KEY
-  if (!key) return null
-  try {
-    const today = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10)
-    const res = await fetch(`https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${today}&token=${key}`, {
-      next: { revalidate: 3600 },
-    })
-    if (!res.ok) {
-      recordError(`finnhub calendar: HTTP ${res.status}`)
-      return null
+  if (key) {
+    try {
+      const res = await fetch(`https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${today}&token=${key}`, {
+        next: { revalidate: 3600 },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const rows = data?.economicCalendar
+        if (Array.isArray(rows)) {
+          const high = rows
+            .filter((e: { impact?: string; country?: string }) => e.impact === "high" && ["IN", "US"].includes(e.country ?? ""))
+            .map((e: { event?: string; country?: string }) => `${e.country}: ${e.event}`)
+          events.push(...high)
+          source = "finnhub + built-in schedule"
+        }
+      } else if (res.status === 403) {
+        // Economic calendar is a paid Finnhub feature — expected on free tier
+        source = "built-in schedule (Finnhub calendar needs a paid plan)"
+      } else {
+        recordError(`finnhub calendar: HTTP ${res.status}`)
+      }
+    } catch (err) {
+      recordError(`finnhub calendar: ${String(err).slice(0, 120)}`)
     }
-    const data = await res.json()
-    const events = data?.economicCalendar
-    if (!Array.isArray(events)) return { highImpactToday: [] }
-    const high = events
-      .filter((e: { impact?: string; country?: string }) => e.impact === "high" && ["IN", "US"].includes(e.country ?? ""))
-      .map((e: { event?: string; country?: string }) => `${e.country}: ${e.event}`)
-    return { highImpactToday: [...new Set(high)].slice(0, 5) }
-  } catch (err) {
-    recordError(`finnhub calendar: ${String(err).slice(0, 120)}`)
-    return null
   }
+
+  return { highImpactToday: [...new Set(events)].slice(0, 5), source }
 }
