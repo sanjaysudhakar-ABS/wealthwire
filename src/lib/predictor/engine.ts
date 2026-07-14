@@ -149,6 +149,7 @@ function derivativeSignals(chain: ChainRow[], spot: number): { signals: Signal[]
 
   const totalCallOI = near.reduce((s, r) => s + (r.call?.oi ?? 0), 0)
   const totalPutOI = near.reduce((s, r) => s + (r.put?.oi ?? 0), 0)
+  const oiAvailable = totalCallOI + totalPutOI > 0
   const pcr = totalCallOI > 0 ? totalPutOI / totalCallOI : 1
   // High PCR → puts written below → support (bullish); extremes fade
   let pcrScore = clamp((pcr - 1) * 120)
@@ -156,9 +157,11 @@ function derivativeSignals(chain: ChainRow[], spot: number): { signals: Signal[]
   signals.push({
     name: "Put/Call ratio (OI)",
     block: "derivatives",
-    score: pcrScore,
-    weight: 2,
-    reason: `PCR ${pcr.toFixed(2)} near ATM${pcr > 1.7 ? " — extreme, contrarian" : pcr < 0.5 ? " — extreme, contrarian" : pcr > 1 ? " — put writers supporting" : " — call writers capping"}`,
+    score: oiAvailable ? pcrScore : 0,
+    weight: oiAvailable ? 2 : 0.1,
+    reason: oiAvailable
+      ? `PCR ${pcr.toFixed(2)} near ATM${pcr > 1.7 ? " — extreme, contrarian" : pcr < 0.5 ? " — extreme, contrarian" : pcr > 1 ? " — put writers supporting" : " — call writers capping"}`
+      : "OI not present in chain data — signal excluded",
   })
 
   // OI walls: highest call OI above spot = resistance, highest put OI below = support
