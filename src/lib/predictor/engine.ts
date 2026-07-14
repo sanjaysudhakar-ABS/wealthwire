@@ -315,7 +315,7 @@ export async function analyze(index: IndexKey, expiryMode: ExpiryMode = "current
   let conviction = Math.min(100, Math.round(Math.abs(composite) * 2))
   if (!trending) conviction = Math.round(conviction * 0.8)
 
-  const eventRisk = events?.highImpactToday ?? []
+  const eventRisk = events.highImpactToday
   if (eventRisk.length > 0) conviction = Math.min(conviction, 45)
 
   const direction: Analysis["direction"] = conviction < 40 ? "neutral" : composite > 0 ? "bullish" : "bearish"
@@ -365,7 +365,7 @@ export async function analyze(index: IndexKey, expiryMode: ExpiryMode = "current
       greeksLive,
       globalCues: `${cues.length}/7`,
       sentimentArticles: sentiment?.articleCount ?? 0,
-      economicCalendar: events !== null,
+      economicCalendar: events.source,
     },
     errors: [...drainUpstoxErrors(), ...drainExternalErrors()],
   }
