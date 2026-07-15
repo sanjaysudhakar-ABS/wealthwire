@@ -30,6 +30,43 @@ type History = {
   } | null
 }
 
+// Sliding direction scale: needle over a bear→neutral→bull gradient.
+// Position derives from a -100..+100 score.
+function DirectionGauge({ score, label, compact = false }: { score: number; label?: string; compact?: boolean }) {
+  const pct = Math.max(0, Math.min(100, (score + 100) / 2))
+  const color = score > 15 ? "text-emerald-600 dark:text-emerald-400" : score < -15 ? "text-red-500" : "text-gray-500 dark:text-gray-400"
+  return (
+    <div>
+      {label && (
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</span>
+          <span className={`text-xs font-bold ${color}`}>{score > 0 ? "+" : ""}{Math.round(score)}</span>
+        </div>
+      )}
+      <div className={`relative w-full ${compact ? "h-1.5" : "h-3"} rounded-full bg-gradient-to-r from-red-500 via-gray-300 to-emerald-500 dark:via-gray-600`}>
+        <div
+          className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gray-900 shadow dark:border-gray-900 dark:bg-white ${compact ? "h-3 w-3" : "h-5 w-5"}`}
+          style={{ left: `${pct}%` }}
+        />
+      </div>
+      {!compact && (
+        <div className="mt-1 flex justify-between text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          <span className="text-red-400">Strong bear</span>
+          <span>Neutral</span>
+          <span className="text-emerald-500">Strong bull</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function blockScore(signals: Signal[], block: string): number {
+  const list = signals.filter(s => s.block === block && s.weight > 0.2)
+  const totalWeight = list.reduce((s, x) => s + x.weight, 0)
+  if (totalWeight === 0) return 0
+  return list.reduce((s, x) => s + x.score * x.weight, 0) / totalWeight
+}
+
 function OutcomeBadge({ outcome }: { outcome: string | null }) {
   if (!outcome) return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-gray-800">pending</span>
   const style = outcome === "hit"
@@ -162,6 +199,17 @@ export default function PredictorPage() {
               <div className="text-xs uppercase tracking-wider text-gray-400">Composite score</div>
               <div className="text-xl font-bold">{analysis.compositeScore > 0 ? "+" : ""}{analysis.compositeScore}</div>
               <div className="text-xs text-gray-400">{new Date(analysis.timestamp).toLocaleTimeString("en-IN")}</div>
+            </div>
+          </div>
+
+          {/* Market direction gauge */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <h3 className="mb-4 font-bold tracking-tight">Market direction</h3>
+            <DirectionGauge score={analysis.compositeScore} />
+            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
+              <DirectionGauge label="Technical" score={blockScore(analysis.signals, "technical")} compact />
+              <DirectionGauge label="Derivatives" score={blockScore(analysis.signals, "derivatives")} compact />
+              <DirectionGauge label="Macro & News" score={blockScore(analysis.signals, "macro")} compact />
             </div>
           </div>
 
