@@ -134,14 +134,14 @@ export function ContactForm() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-800/50">
           <h3 className="font-semibold text-[#0F172A] dark:text-white mb-3">Follow Us</h3>
           <div className="space-y-2 text-sm">
-            <a href="https://twitter.com/WealthWireIndia" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#1E40AF] transition-colors">
-              &#120143; @WealthWireIndia
+            <a href="https://twitter.com/WealthWire" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#1E40AF] transition-colors">
+              &#120143; @WealthWire
             </a>
-            <a href="https://linkedin.com/company/wealthwireindia" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#1E40AF] transition-colors">
-              in WealthWire India
+            <a href="https://linkedin.com/company/wealthwire" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#1E40AF] transition-colors">
+              in WealthWire
             </a>
-            <a href="https://youtube.com/@WealthWireIndia" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#1E40AF] transition-colors">
-              &#9654; WealthWire India
+            <a href="https://youtube.com/@WealthWire" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#1E40AF] transition-colors">
+              &#9654; WealthWire
             </a>
           </div>
         </div>

@@ -5,6 +5,6 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: "*", allow: "/", disallow: ["/admin/", "/api/", "/auth/"] },
     ],
-    sitemap: "https://wealthwireindia.com/sitemap.xml",
+    sitemap: "https://abscorp.xyz/sitemap.xml",
   }
 }

@@ -39,7 +39,7 @@ function toCard(r: ArticleRow): ArticleCard {
     excerpt: r.excerpt ?? "",
     coverImage: r.coverImage ?? PLACEHOLDER_IMAGE,
     category: r.category?.name ?? "Markets",
-    author: "WealthWire India",
+    author: "WealthWire",
     date: r.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) ?? "",
     readTime: estimateReadTime(r.content ?? r.excerpt ?? ""),
     featured: r.featured,

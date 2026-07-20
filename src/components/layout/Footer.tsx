@@ -70,8 +70,8 @@ export function Footer() {
       </div>
       <div className="border-t border-gray-700">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between gap-2 text-xs text-gray-500">
-          <p>WealthWire India is not SEBI registered. Content is for educational purposes only.</p>
-          <p>© {new Date().getFullYear()} WealthWire India. All rights reserved.</p>
+          <p>WealthWire is not SEBI registered. Content is for educational purposes only.</p>
+          <p>© {new Date().getFullYear()} WealthWire, a service of Athena Business Solutions. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { ContactForm } from "@/components/layout/ContactForm"
 
 export const metadata: Metadata = {
-  title: "Contact Us | WealthWire India",
-  description: "Get in touch with WealthWire India for editorial enquiries, advertising, content partnerships, or technical support.",
+  title: "Contact Us | WealthWire",
+  description: "Get in touch with WealthWire for editorial enquiries, advertising, content partnerships, or technical support.",
 }
 
 export default function ContactPage() {

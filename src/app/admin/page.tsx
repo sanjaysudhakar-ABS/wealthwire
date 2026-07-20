@@ -4,7 +4,7 @@ import { FileText, Users, Mail, Eye, Plus, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { newsArticles } from "@/lib/mock-data"
 
-export const metadata: Metadata = { title: "Admin Dashboard | WealthWire India" }
+export const metadata: Metadata = { title: "Admin Dashboard | WealthWire" }
 
 export default function AdminDashboard() {
   const stats = [

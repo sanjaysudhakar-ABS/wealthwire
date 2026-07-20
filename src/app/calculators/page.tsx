@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import Link from "next/link"
 import { Calculator, TrendingUp, Home, PiggyBank, Percent, BarChart3, ArrowUpDown } from "lucide-react"
 
-export const metadata: Metadata = { title: "Financial Calculators – SIP, EMI, Retirement | WealthWire India", description: "Free financial calculators: SIP, EMI, lumpsum, retirement, CAGR, income tax, home loan calculators." }
+export const metadata: Metadata = { title: "Financial Calculators – SIP, EMI, Retirement | WealthWire", description: "Free financial calculators: SIP, EMI, lumpsum, retirement, CAGR, income tax, home loan calculators." }
 
 const calculators = [
   { icon: TrendingUp, label: "SIP Calculator", desc: "Calculate returns on your monthly SIP investments. Plan your wealth creation journey.", href: "/calculators/sip", color: "bg-blue-600", example: "₹10,000/month → ₹23.2 Lakh in 10 years @12%" },

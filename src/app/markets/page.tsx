@@ -8,7 +8,7 @@ import { getAllMarketData } from "@/lib/market-api"
 
 export const revalidate = 3600
 
-export const metadata: Metadata = { title: "Stock Market Today – Nifty, Sensex Live | WealthWire India", description: "Live Nifty 50, Sensex, Bank Nifty data. Top gainers, losers, sector performance and market news." }
+export const metadata: Metadata = { title: "Stock Market Today – Nifty, Sensex Live | WealthWire", description: "Live Nifty 50, Sensex, Bank Nifty data. Top gainers, losers, sector performance and market news." }
 
 function formatINR(v: number) { return v.toLocaleString("en-IN", { maximumFractionDigits: 2 }) }
 

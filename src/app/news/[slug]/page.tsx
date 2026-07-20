@@ -38,7 +38,7 @@ async function getArticle(slug: string) {
         source,
         coverImage: row.coverImage ?? PLACEHOLDER,
         category: row.category?.name ?? "Markets",
-        author: source?.name ?? "WealthWire India",
+        author: source?.name ?? "WealthWire",
         date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
         isAI: true,
       }

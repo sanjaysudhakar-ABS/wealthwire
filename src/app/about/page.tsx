@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "About Us | WealthWire India",
-  description: "Learn about WealthWire India — an independent financial media platform democratising access to financial information for Indian retail investors.",
+  title: "About Us | WealthWire",
+  description: "Learn about WealthWire — an independent financial media platform democratising access to financial information for Indian retail investors.",
 }
 
 const coverageAreas = [
@@ -46,7 +46,7 @@ export default function AboutPage() {
           <span className="text-[#1E40AF]">Wealth Creation.</span>
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          WealthWire India is your trusted source for independent financial news, market data,
+          WealthWire is your trusted source for independent financial news, market data,
           and investment education — built for the Indian retail investor.
         </p>
       </section>
@@ -56,10 +56,10 @@ export default function AboutPage() {
         <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white mb-4">Who We Are</h2>
         <div className="space-y-4 text-gray-700 dark:text-gray-300">
           <p>
-            WealthWire India is an independent financial media platform founded with a singular
-            mission: to democratise access to high-quality financial information for Indian retail
-            investors. For too long, actionable market intelligence was the preserve of institutional
-            investors and the affluent. We are changing that.
+            WealthWire, a service of Athena Business Solutions, is an independent financial media platform
+            founded with a singular mission: to democratise access to high-quality financial information for
+            Indian retail investors. For too long, actionable market intelligence was the preserve of
+            institutional investors and the affluent. We are changing that.
           </p>
           <p>
             We cover Indian equity markets, mutual funds, IPOs, personal finance, and more — with
@@ -111,7 +111,7 @@ export default function AboutPage() {
         <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-6">
           <h2 className="text-lg font-bold text-amber-800 dark:text-amber-400 mb-2">Important Disclaimer</h2>
           <p className="text-amber-700 dark:text-amber-300 text-sm leading-relaxed">
-            WealthWire India is not registered with SEBI (Securities and Exchange Board of India).
+            WealthWire is not registered with SEBI (Securities and Exchange Board of India).
             All content published on this platform is for educational and informational purposes only
             and should not be construed as investment advice, a solicitation to buy or sell securities,
             or a recommendation of any financial product. Please consult a SEBI-registered investment

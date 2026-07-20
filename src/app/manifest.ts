@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WealthWire India",
+    name: "WealthWire",
     short_name: "WealthWire",
     description: "Market Intelligence. Wealth Creation.",
     start_url: "/",

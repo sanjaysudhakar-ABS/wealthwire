@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { CheckCircle } from "lucide-react"
 
-export const metadata: Metadata = { title: "Open Free Demat Account – Best Brokers 2024 | WealthWire India", description: "Compare India's best discount brokers. Open a free demat account with Zerodha, Upstox, Groww or Angel One." }
+export const metadata: Metadata = { title: "Open Free Demat Account – Best Brokers 2024 | WealthWire", description: "Compare India's best discount brokers. Open a free demat account with Zerodha, Upstox, Groww or Angel One." }
 
 const brokers = [
   { name: "Zerodha", desc: "India's largest stockbroker by active clients", brokerage: "₹0 equity delivery, ₹20/order F&O", features: ["Free equity delivery", "₹20 flat F&O", "Kite platform", "Coin for mutual funds", "Console for reports"], cta: "Open with Zerodha", color: "border-blue-200 bg-blue-50 dark:bg-blue-900/10", badge: "Most Popular" },
@@ -36,7 +36,7 @@ export default function OpenDematPage() {
         ))}
       </div>
       <p className="text-xs text-center text-gray-400 border-t border-gray-200 dark:border-gray-800 pt-6">
-        <strong>Disclosure:</strong> WealthWire India may earn a commission when you open an account through the links above. This does not affect our editorial independence. We recommend brokers based on features, reliability, and user experience.
+        <strong>Disclosure:</strong> WealthWire may earn a commission when you open an account through the links above. This does not affect our editorial independence. We recommend brokers based on features, reliability, and user experience.
       </p>
     </div>
   )
