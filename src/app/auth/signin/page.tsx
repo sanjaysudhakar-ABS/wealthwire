@@ -21,7 +21,7 @@ export default function SignInPage() {
           <div className="flex justify-end"><button type="button" className="text-sm text-[#1E40AF] hover:underline">Forgot password?</button></div>
           <button type="submit" className="w-full bg-[#1E40AF] hover:bg-blue-800 text-white font-semibold py-3 rounded-xl transition-colors">Sign In</button>
         </form>
-        <p className="text-center text-sm text-gray-500 mt-6">New to WealthWire India? <a href="/auth/signup" className="text-[#1E40AF] font-semibold hover:underline">Create account</a></p>
+        <p className="text-center text-sm text-gray-500 mt-6">New to WealthWire? <a href="/auth/signup" className="text-[#1E40AF] font-semibold hover:underline">Create account</a></p>
       </div>
     </div>
   )

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AdUnit } from "@/components/ads/AdUnit"
 import { ipoList } from "@/lib/mock-data"
 
-export const metadata: Metadata = { title: "IPO 2024 Calendar – Upcoming, Open & Listed IPOs | WealthWire India", description: "Latest IPO news, GMP, subscription data, and listing gains. Complete IPO calendar for Indian markets." }
+export const metadata: Metadata = { title: "IPO 2024 Calendar – Upcoming, Open & Listed IPOs | WealthWire", description: "Latest IPO news, GMP, subscription data, and listing gains. Complete IPO calendar for Indian markets." }
 
 export default function IPOPage() {
   const open = ipoList.filter(i => i.status === "OPEN")

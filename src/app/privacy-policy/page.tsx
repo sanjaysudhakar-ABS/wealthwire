@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | WealthWire India",
-  description: "WealthWire India privacy policy — how we collect, use, and protect your personal information.",
+  title: "Privacy Policy | WealthWire",
+  description: "WealthWire privacy policy — how we collect, use, and protect your personal information.",
 }
 
 export default function PrivacyPolicyPage() {
@@ -16,9 +16,9 @@ export default function PrivacyPolicyPage() {
 
         <section>
           <p>
-            WealthWire India (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is committed to protecting your privacy.
-            This Privacy Policy explains how we collect, use, disclose, and safeguard your
-            information when you visit our website at wealthwireindia.com. Please read it carefully.
+            WealthWire, a service of Athena Business Solutions (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), is
+            committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose,
+            and safeguard your information when you visit our website at abscorp.xyz. Please read it carefully.
             By using our site, you agree to the practices described here.
           </p>
         </section>

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { AdSlot } from "@/components/ads/AdSlot"
 import { getLatestArticles, getCategories } from "@/lib/articles"
 
-export const metadata: Metadata = { title: "Financial News India – Markets, Economy, Business | WealthWire India", description: "Latest Indian financial news covering stock markets, economy, IPO, mutual funds, and personal finance." }
+export const metadata: Metadata = { title: "Financial News India – Markets, Economy, Business | WealthWire", description: "Latest Indian financial news covering stock markets, economy, IPO, mutual funds, and personal finance." }
 
 export default async function NewsPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   const { category } = await searchParams

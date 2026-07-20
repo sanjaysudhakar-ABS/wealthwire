@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Terms of Use | WealthWire India",
-  description: "Terms of use for WealthWire India — the rules governing your use of our financial media platform.",
+  title: "Terms of Use | WealthWire",
+  description: "Terms of use for WealthWire — the rules governing your use of our financial media platform.",
 }
 
 export default function TermsOfUsePage() {
@@ -16,9 +16,9 @@ export default function TermsOfUsePage() {
 
         <section>
           <p>
-            Please read these Terms of Use carefully before using the WealthWire India website
-            (wealthwireindia.com). By accessing or using our site, you agree to be bound by these
-            terms. If you do not agree, please do not use our site.
+            Please read these Terms of Use carefully before using the WealthWire website
+            (abscorp.xyz), operated by Athena Business Solutions. By accessing or using our site, you agree
+            to be bound by these terms. If you do not agree, please do not use our site.
           </p>
         </section>
 
@@ -35,7 +35,7 @@ export default function TermsOfUsePage() {
         <section className="border-t border-gray-200 dark:border-gray-800 pt-8">
           <h2 className="text-xl font-bold text-[#0F172A] dark:text-white mb-4">2. Use of Service</h2>
           <div className="space-y-3">
-            <p>You agree to use WealthWire India only for lawful purposes and in a manner that does not infringe the rights of others. You must not:</p>
+            <p>You agree to use WealthWire only for lawful purposes and in a manner that does not infringe the rights of others. You must not:</p>
             <ul className="list-disc pl-5 space-y-2">
               <li>Reproduce, distribute, or republish our content without prior written permission</li>
               <li>Use automated tools (bots, scrapers) to access or extract content from our site</li>
@@ -49,8 +49,8 @@ export default function TermsOfUsePage() {
         <section className="border-t border-gray-200 dark:border-gray-800 pt-8">
           <h2 className="text-xl font-bold text-[#0F172A] dark:text-white mb-4">3. Intellectual Property</h2>
           <p>
-            All content on WealthWire India — including articles, analysis, graphics, logos, data
-            presentations, and code — is the intellectual property of WealthWire India or its
+            All content on WealthWire — including articles, analysis, graphics, logos, data
+            presentations, and code — is the intellectual property of WealthWire or its
             licensors and is protected by Indian and international copyright law. You may share our
             content links freely, but reproduction of full articles or substantial portions thereof
             without attribution and prior written consent is prohibited.
@@ -62,7 +62,7 @@ export default function TermsOfUsePage() {
           <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-5">
             <p className="font-semibold text-amber-800 dark:text-amber-400 mb-2">This is not financial advice.</p>
             <p className="text-amber-700 dark:text-amber-300">
-              WealthWire India is NOT registered with the Securities and Exchange Board of India
+              WealthWire is NOT registered with the Securities and Exchange Board of India
               (SEBI). All content published on this platform — including market commentary, stock
               mentions, mutual fund analysis, IPO reviews, and any other financial content — is
               strictly for educational and informational purposes only. Nothing on this site
@@ -77,7 +77,7 @@ export default function TermsOfUsePage() {
         <section className="border-t border-gray-200 dark:border-gray-800 pt-8">
           <h2 className="text-xl font-bold text-[#0F172A] dark:text-white mb-4">5. Limitation of Liability</h2>
           <p>
-            To the fullest extent permitted by applicable law, WealthWire India and its owners,
+            To the fullest extent permitted by applicable law, WealthWire and its owners,
             editors, employees, and contributors shall not be liable for any direct, indirect,
             incidental, consequential, or punitive damages arising out of your access to or use of
             our site, reliance on any content published herein, or any trading or investment

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AdUnit } from "@/components/ads/AdUnit"
 import { mutualFunds } from "@/lib/mock-data"
 
-export const metadata: Metadata = { title: "Best Mutual Funds 2024 – SIP, ELSS, Index Funds | WealthWire India", description: "Top performing mutual funds in India. Compare SIP returns, NAV, expense ratio, and ratings." }
+export const metadata: Metadata = { title: "Best Mutual Funds 2024 – SIP, ELSS, Index Funds | WealthWire", description: "Top performing mutual funds in India. Compare SIP returns, NAV, expense ratio, and ratings." }
 
 const categories = ["All", "Large Cap", "Mid Cap", "Small Cap", "Flexi Cap", "ELSS", "Index", "Debt"]
 

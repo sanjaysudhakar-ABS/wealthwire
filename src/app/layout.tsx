@@ -24,20 +24,20 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "G-FKV7XJ1L9L"
 
 export const metadata: Metadata = {
   title: {
-    default: "WealthWire India - Market Intelligence. Wealth Creation.",
-    template: "%s | WealthWire India",
+    default: "WealthWire - Market Intelligence. Wealth Creation.",
+    template: "%s | WealthWire",
   },
   description: "India's leading financial media platform. Get real-time market data, mutual fund analysis, IPO updates, and personal finance guidance.",
   keywords: ["Indian stock market", "Nifty", "Sensex", "mutual funds", "IPO", "personal finance", "investment"],
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://wealthwireindia.com",
-    siteName: "WealthWire India",
+    url: "https://abscorp.xyz",
+    siteName: "WealthWire",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@WealthWireIndia",
+    site: "@WealthWire",
   },
   other: {
     "google-adsense-account": "ca-pub-5101218278922497",

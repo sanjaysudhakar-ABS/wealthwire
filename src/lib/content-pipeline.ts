@@ -104,7 +104,7 @@ export async function generateAIArticle() {
   const topic = ARTICLE_TOPICS.find(t => !publishedTitles.has(t.title))
     ?? ARTICLE_TOPICS[Math.floor(published.length % ARTICLE_TOPICS.length)]
 
-  const prompt = `You are a senior financial journalist at WealthWire India, India's leading financial media platform.
+  const prompt = `You are a senior financial journalist at WealthWire, India's leading financial media platform.
 Write a comprehensive, SEO-optimized article for Indian retail investors.
 
 Title: "${topic.title}"
@@ -118,7 +118,7 @@ Requirements:
 - Use H2 and H3 subheadings (markdown format: ## and ###)
 - Include specific Indian context (SEBI, NSE/BSE, INR amounts, Indian funds/stocks where relevant)
 - Add a practical "Key Takeaways" section at the end with 3-5 bullet points
-- Include a disclaimer at the very end: "Disclaimer: This article is for educational purposes only and does not constitute investment advice. WealthWire India is not SEBI registered. Please consult a qualified financial advisor before making investment decisions."
+- Include a disclaimer at the very end: "Disclaimer: This article is for educational purposes only and does not constitute investment advice. WealthWire is not SEBI registered. Please consult a qualified financial advisor before making investment decisions."
 - Write in clean markdown
 
 Write only the article content, starting with the first paragraph (not the title).`
@@ -192,5 +192,5 @@ function buildNewsContent(a: FinnhubArticle): string {
 
 **Source:** [${a.source}](${a.url})
 
-*This article was sourced from ${a.source}. WealthWire India aggregates financial news for informational purposes only. This does not constitute investment advice.*`
+*This article was sourced from ${a.source}. WealthWire aggregates financial news for informational purposes only. This does not constitute investment advice.*`
 }
