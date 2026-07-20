@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import Script from "next/script"
+import { GoogleAnalytics } from "@next/third-parties/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
 import { MarketTicker } from "@/components/layout/MarketTicker"
@@ -17,6 +18,9 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 })
+
+// Google Analytics 4 measurement ID. Overridable via NEXT_PUBLIC_GA_ID.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "G-FKV7XJ1L9L"
 
 export const metadata: Metadata = {
   title: {
@@ -64,6 +68,7 @@ export default function RootLayout({
           <CookieBanner />
         </ThemeProvider>
       </body>
+      {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>
   )
 }
