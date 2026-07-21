@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { XMLParser } from "fast-xml-parser"
 import prisma from "./prisma"
 
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY
@@ -164,6 +165,108 @@ Write only the article content, starting with the first paragraph (not the title
   })
 
   return { title: topic.title, slug, action: "created" }
+}
+
+// ── Part C: Coinpedia RSS crypto feed ───────────────────────────────────────
+
+const COINPEDIA_FEED = "https://coinpedia.org/feed/"
+
+type RssItem = {
+  title?: string
+  link?: string
+  pubDate?: string
+  description?: string
+  "content:encoded"?: string
+  category?: string | string[]
+  "media:content"?: { "@_url"?: string } | Array<{ "@_url"?: string }>
+  enclosure?: { "@_url"?: string }
+}
+
+const rssParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" })
+
+// Strip HTML tags and the WordPress "The post … appeared first on …" boilerplate
+// to produce a clean plain-text excerpt.
+function cleanExcerpt(html: string): string {
+  return html
+    .replace(/<!\[CDATA\[|\]\]>/g, "")
+    .replace(/The post [\s\S]*?appeared first on[\s\S]*$/i, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#8217;|&#8216;/g, "'")
+    .replace(/&#8220;|&#8221;/g, '"')
+    .replace(/&#8230;/g, "…")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+// First <img> src inside the content, used as the cover image.
+function firstImage(item: RssItem): string | null {
+  const media = item["media:content"]
+  if (Array.isArray(media) && media[0]?.["@_url"]) return media[0]["@_url"]!
+  if (media && !Array.isArray(media) && media["@_url"]) return media["@_url"]!
+  if (item.enclosure?.["@_url"]) return item.enclosure["@_url"]!
+  const m = (item["content:encoded"] ?? item.description ?? "").match(/<img[^>]+src=["']([^"']+)["']/i)
+  return m?.[1] ?? null
+}
+
+/**
+ * Ingest Coinpedia's RSS feed as Crypto news. Follows the same
+ * excerpt + attribution + link-back model as the Finnhub sync: we store the
+ * summary and link readers to the original article, never republishing the
+ * full piece.
+ */
+export async function syncCoinpediaFeed() {
+  const res = await fetch(COINPEDIA_FEED, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; WealthWireBot/1.0; +https://abscorp.xyz)",
+      Accept: "application/rss+xml, application/xml, text/xml",
+    },
+    next: { revalidate: 0 },
+  })
+  if (!res.ok) throw new Error(`Coinpedia feed HTTP ${res.status}`)
+
+  const xml = await res.text()
+  const parsed = rssParser.parse(xml)
+  const items: RssItem[] = parsed?.rss?.channel?.item ?? []
+  if (!Array.isArray(items) || items.length === 0) return []
+
+  const saved: string[] = []
+  const dbCat = await prisma.category.upsert({
+    where: { slug: slugify("Crypto") },
+    create: { name: "Crypto", slug: slugify("Crypto") },
+    update: {},
+  })
+
+  for (const item of items.slice(0, 15)) {
+    const title = typeof item.title === "string" ? item.title.trim() : ""
+    const link = typeof item.link === "string" ? item.link.trim() : ""
+    if (!title || !link) continue
+
+    const slug = slugify(title)
+    const existing = await prisma.article.findUnique({ where: { slug } })
+    if (existing) continue
+
+    const excerpt = cleanExcerpt(item.description ?? "").slice(0, 300)
+    const published = item.pubDate ? new Date(item.pubDate) : new Date()
+
+    await prisma.article.create({
+      data: {
+        title,
+        slug,
+        excerpt,
+        content: `${excerpt}\n\n**Source:** [Coinpedia](${link})\n\n*This summary was sourced from Coinpedia. WealthWire aggregates crypto news for informational purposes only. This does not constitute investment advice.*`,
+        coverImage: firstImage(item),
+        status: "PUBLISHED",
+        publishedAt: isNaN(published.getTime()) ? new Date() : published,
+        featured: false,
+        categoryId: dbCat.id,
+      },
+    })
+    saved.push(title)
+  }
+
+  return saved
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

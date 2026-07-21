@@ -1,4 +1,4 @@
-import { syncNewsHeadlines } from "../../src/lib/content-pipeline"
+import { syncNewsHeadlines, syncCoinpediaFeed } from "../../src/lib/content-pipeline"
 
 // Background function (15 min limit) — invoked by the scheduled sync-news
 // function. Netlify responds 202 to the caller immediately; this keeps
@@ -12,8 +12,15 @@ export default async function handler(req: Request) {
 
   try {
     const saved = await syncNewsHeadlines()
-    console.log(`[sync-news-background] Saved ${saved.length} articles:`, saved)
+    console.log(`[sync-news-background] Finnhub saved ${saved.length} articles:`, saved)
   } catch (err) {
-    console.error("[sync-news-background] Error:", err)
+    console.error("[sync-news-background] Finnhub error:", err)
+  }
+
+  try {
+    const crypto = await syncCoinpediaFeed()
+    console.log(`[sync-news-background] Coinpedia saved ${crypto.length} articles:`, crypto)
+  } catch (err) {
+    console.error("[sync-news-background] Coinpedia error:", err)
   }
 }
