@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { syncNewsHeadlines, generateAIArticle } from "@/lib/content-pipeline"
+import { syncNewsHeadlines, generateAIArticle, syncCoinpediaFeed } from "@/lib/content-pipeline"
 
 // Protected by a secret token — call with ?token=YOUR_CONTENT_SYNC_SECRET
 export async function POST(req: NextRequest) {
@@ -19,14 +19,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ type: "news", saved })
     }
 
+    if (type === "coinpedia") {
+      const saved = await syncCoinpediaFeed()
+      return NextResponse.json({ type: "coinpedia", saved })
+    }
+
     if (type === "ai-article") {
       const result = await generateAIArticle()
       return NextResponse.json({ type: "ai-article", ...result })
     }
 
-    // Run both
-    const [saved, article] = await Promise.all([syncNewsHeadlines(), generateAIArticle()])
-    return NextResponse.json({ news: { saved }, article })
+    // Run all
+    const [news, crypto, article] = await Promise.all([
+      syncNewsHeadlines(),
+      syncCoinpediaFeed().catch(e => { console.error("[coinpedia] sync failed:", e); return [] }),
+      generateAIArticle(),
+    ])
+    return NextResponse.json({ news: { saved: news }, coinpedia: { saved: crypto }, article })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
