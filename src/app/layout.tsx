@@ -8,6 +8,7 @@ import { MarketTicker } from "@/components/layout/MarketTicker"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { CookieBanner } from "@/components/layout/CookieBanner"
+import { isAdSenseEnabled } from "@/lib/ads"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,12 +53,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5101218278922497"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        {isAdSenseEnabled() && (
+          <Script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5101218278922497"
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
       </head>
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#0F172A] text-gray-900 dark:text-gray-100">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>

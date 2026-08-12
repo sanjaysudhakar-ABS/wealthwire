@@ -17,22 +17,16 @@ const coverageAreas = [
 
 const team = [
   {
-    name: "Rahul Sharma",
-    role: "Editor in Chief",
-    bio: "Over 15 years of experience covering Indian capital markets and macroeconomics. Previously at leading financial dailies.",
-    initials: "RS",
+    name: "WealthWire Desk",
+    role: "Editorial",
+    bio: "Our desk publishes educational explainers on Indian markets, mutual funds, tax basics, and personal finance. We prioritise clarity over hype.",
+    initials: "WW",
   },
   {
-    name: "Priya Mehta",
-    role: "Markets Editor",
-    bio: "Specialises in equity research and mutual fund analysis. MBA in Finance from IIM Ahmedabad.",
-    initials: "PM",
-  },
-  {
-    name: "Vikram Singh",
-    role: "Technology",
-    bio: "Leads product and data engineering. Passionate about making financial data accessible through technology.",
-    initials: "VS",
+    name: "Athena Business Solutions",
+    role: "Publisher",
+    bio: "WealthWire is a service of Athena Business Solutions. We build tools and guides that help retail investors learn how markets and products work.",
+    initials: "ABS",
   },
 ]
 
@@ -92,7 +86,7 @@ export default function AboutPage() {
       {/* Our Team */}
       <section className="border-t border-gray-200 dark:border-gray-800 pt-8 mt-8">
         <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white mb-6">Our Team</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
           {team.map((member) => (
             <div key={member.name} className="text-center">
               <div className="w-16 h-16 rounded-full bg-[#1E40AF] text-white flex items-center justify-center text-xl font-bold mx-auto mb-3">

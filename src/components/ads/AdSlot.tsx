@@ -1,6 +1,7 @@
 import Image from "next/image"
 import type { AdSlot as AdSlotName } from "@prisma/client"
 import prisma from "@/lib/prisma"
+import { isAdSenseEnabled } from "@/lib/ads"
 import { AdUnit } from "./AdUnit"
 
 // Maps each placement to the AdSense slot id used when no direct-sold
@@ -55,6 +56,9 @@ export async function AdSlot({ slot, className = "" }: { slot: AdSlotName; class
       </div>
     )
   }
+
+  // No AdSense inventory until explicitly enabled (post-approval).
+  if (!isAdSenseEnabled()) return null
 
   return <AdUnit slot={ADSENSE_SLOTS[slot]} className={`w-full rounded-xl ${className}`} />
 }

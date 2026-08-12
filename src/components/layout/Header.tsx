@@ -12,6 +12,7 @@ const navLinks = [
   { label: "Mutual Funds", href: "/mutual-funds" },
   { label: "IPO", href: "/ipo" },
   { label: "Calculators", href: "/calculators" },
+  { label: "Guides", href: "/personal-finance" },
 ]
 
 export function Header() {

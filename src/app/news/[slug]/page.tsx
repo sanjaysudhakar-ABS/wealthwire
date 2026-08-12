@@ -4,14 +4,13 @@ import { notFound } from "next/navigation"
 import { SafeImage } from "@/components/ui/SafeImage"
 import { AdSlot } from "@/components/ads/AdSlot"
 import { newsArticles as mockArticles } from "@/lib/mock-data"
+import { isThinContent } from "@/lib/articles"
 import prisma from "@/lib/prisma"
 
 export const revalidate = 3600
 
 const PLACEHOLDER = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800"
 
-// Synced news articles embed their origin as "**Source:** [name](url)".
-// Pull it out so the page can render a prominent link to the original.
 function extractSource(content: string | null) {
   if (!content) return { source: null, body: content }
   const m = content.match(/\*\*Source:\*\*\s*\[([^\]]+)\]\(([^)]+)\)/)
@@ -29,6 +28,7 @@ async function getArticle(slug: string) {
       include: { category: true },
     })
     if (row) {
+      if (isThinContent(row.content)) return null
       const { source, body } = extractSource(row.content)
       return {
         title: row.title,
@@ -38,15 +38,26 @@ async function getArticle(slug: string) {
         source,
         coverImage: row.coverImage ?? PLACEHOLDER,
         category: row.category?.name ?? "Markets",
-        author: source?.name ?? "WealthWire",
+        author: "WealthWire Desk",
         date: row.publishedAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) ?? "",
-        isAI: true,
       }
     }
   } catch { /* fallthrough */ }
 
   const mock = mockArticles.find(a => a.slug === slug)
-  if (mock) return { ...mock, content: null, source: null, isAI: false }
+  if (mock) {
+    return {
+      title: mock.title,
+      slug: mock.slug,
+      excerpt: mock.excerpt,
+      content: mock.content,
+      source: null as null | { name: string; url: string },
+      coverImage: mock.coverImage,
+      category: mock.category,
+      author: mock.author,
+      date: mock.date,
+    }
+  }
   return null
 }
 
@@ -54,11 +65,14 @@ async function getRelated(slug: string, category: string) {
   try {
     const rows = await prisma.article.findMany({
       where: { status: "PUBLISHED", slug: { not: slug }, category: { name: category } },
-      take: 3,
+      take: 8,
       orderBy: { publishedAt: "desc" },
-      select: { slug: true, title: true, coverImage: true },
+      select: { slug: true, title: true, coverImage: true, content: true },
     })
-    if (rows.length > 0) return rows.map(r => ({ slug: r.slug, title: r.title, coverImage: r.coverImage ?? PLACEHOLDER }))
+    const substantial = rows.filter(r => !isThinContent(r.content))
+    if (substantial.length > 0) {
+      return substantial.slice(0, 3).map(r => ({ slug: r.slug, title: r.title, coverImage: r.coverImage ?? PLACEHOLDER }))
+    }
   } catch { /* fallthrough */ }
 
   return mockArticles
@@ -71,11 +85,14 @@ async function getLatestArticles() {
   try {
     const rows = await prisma.article.findMany({
       where: { status: "PUBLISHED" },
-      take: 5,
+      take: 20,
       orderBy: { publishedAt: "desc" },
-      select: { slug: true, title: true, coverImage: true },
+      select: { slug: true, title: true, coverImage: true, content: true },
     })
-    if (rows.length > 0) return rows.map(r => ({ slug: r.slug, title: r.title, coverImage: r.coverImage ?? PLACEHOLDER }))
+    const substantial = rows.filter(r => !isThinContent(r.content))
+    if (substantial.length > 0) {
+      return substantial.slice(0, 5).map(r => ({ slug: r.slug, title: r.title, coverImage: r.coverImage ?? PLACEHOLDER }))
+    }
   } catch { /* fallthrough */ }
   return mockArticles.slice(0, 5).map(a => ({ slug: a.slug, title: a.title, coverImage: a.coverImage }))
 }
@@ -87,7 +104,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: article.title, description: article.excerpt }
 }
 
-// Render inline markdown: [links](url), **bold**, *italic*
 function renderInline(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = []
   const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g
@@ -109,7 +125,6 @@ function renderInline(text: string): React.ReactNode[] {
   return nodes
 }
 
-// Render markdown-ish content (headings, lists, paragraphs + inline marks)
 function renderContent(content: string) {
   const lines = content.split("\n")
   const elements: React.ReactNode[] = []
@@ -136,7 +151,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const { slug } = await params
   const [article, latestArticles] = await Promise.all([getArticle(slug), getLatestArticles()])
 
-  if (!article) notFound()
+  if (!article || !article.content) notFound()
 
   const related = await getRelated(slug, article.category)
 
@@ -151,11 +166,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </nav>
           <span className="text-xs bg-[#1E40AF] text-white px-3 py-1 rounded-full font-medium mb-4 inline-block">{article.category}</span>
           <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight mb-4">
-            {article.source ? (
-              <a href={article.source.url} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#1E40AF] dark:hover:text-blue-400">
-                {article.title}
-              </a>
-            ) : article.title}
+            {article.title}
           </h1>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
             <div className="w-8 h-8 rounded-full bg-[#1E40AF] flex items-center justify-center text-white text-xs font-bold">W</div>
@@ -167,25 +178,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden mb-8">
             <SafeImage src={article.coverImage} alt={article.title} fill className="object-cover" />
           </div>
-          <AdSlot slot="IN_ARTICLE_TOP" className="mb-6" />
           <div className="prose-article">
-            {article.content
-              ? renderContent(article.content)
-              : (
-                <>
-                  <p className="text-lg font-medium">{article.excerpt}</p>
-                  <p>Indian financial markets have been witnessing significant activity. Investors are closely monitoring domestic and global cues to make informed investment decisions.</p>
-                  <p>Experts suggest retail investors focus on long-term financial goals rather than reacting to short-term market volatility. A well-diversified portfolio across equities, debt, gold, and real estate remains the cornerstone of sound financial planning.</p>
-                  <h2 className="text-xl font-bold mt-6 mb-3">Key Takeaways for Investors</h2>
-                  <ul className="list-disc pl-5 space-y-2">
-                    <li>Stay invested through market cycles and avoid panic selling</li>
-                    <li>Continue SIP investments regardless of market conditions</li>
-                    <li>Review and rebalance your portfolio at least once a year</li>
-                    <li>Ensure adequate insurance coverage before making investments</li>
-                  </ul>
-                </>
-              )
-            }
+            {renderContent(article.content)}
           </div>
           {article.source && (
             <a
@@ -202,11 +196,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </a>
           )}
           <AdSlot slot="IN_ARTICLE_MIDDLE" className="my-8" />
-          <div className="flex gap-3 mb-8">
-            {["Twitter", "LinkedIn", "WhatsApp"].map((platform) => (
-              <button key={platform} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">{platform}</button>
-            ))}
-          </div>
           {related.length > 0 && (
             <div>
               <h3 className="text-xl font-bold mb-4">Related Articles</h3>
@@ -226,7 +215,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <aside className="space-y-6">
           <AdSlot slot="SIDEBAR" />
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-            <h3 className="font-bold mb-4">Latest News</h3>
+            <h3 className="font-bold mb-4">Latest Articles</h3>
             {latestArticles.map(a => (
               <Link key={a.slug} href={`/news/${a.slug}`} className="flex gap-3 mb-4 group">
                 <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 shrink-0">

@@ -44,7 +44,9 @@ export function Footer() {
                 { label: "Stocks", href: "/markets" },
                 { label: "Mutual Funds", href: "/mutual-funds" },
                 { label: "IPO", href: "/ipo" },
-                { label: "Gold Rates", href: "/markets" },
+                { label: "Gold Rates", href: "/gold" },
+                { label: "Personal Finance", href: "/personal-finance" },
+                { label: "Tax Guide", href: "/tax" },
                 { label: "News", href: "/news" },
                 { label: "Calculators", href: "/calculators" },
               ].map(l => (

@@ -49,7 +49,9 @@ export default function MutualFundsPage() {
                 <span>Risk: <strong className={fund.riskRating === "Very High" ? "text-red-600" : fund.riskRating === "High" ? "text-amber-600" : "text-green-600"}>{fund.riskRating}</strong></span>
                 <span>SIP: <strong className="text-gray-900 dark:text-gray-100">₹{fund.minSip}</strong></span>
               </div>
-              <button className="w-full bg-[#1E40AF] hover:bg-blue-800 text-white text-sm font-semibold py-2 rounded-lg transition-colors">Start SIP</button>
+              <Link href="/calculators/sip" className="block">
+                <button className="w-full bg-[#1E40AF] hover:bg-blue-800 text-white text-sm font-semibold py-2 rounded-lg transition-colors">Explore SIP Calculator</button>
+              </Link>
             </CardContent>
           </Card>
         ))}

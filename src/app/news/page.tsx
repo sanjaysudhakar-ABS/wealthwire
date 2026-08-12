@@ -87,10 +87,17 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
             <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
               <h3 className="mb-4 font-bold tracking-tight">Trending Topics</h3>
               <ul className="space-y-3">
-                {["Nifty 50 Analysis", "Budget 2026", "IPO GMP Today", "Gold Price Today", "SIP Returns", "Tax Saving ELSS"].map((topic, i) => (
-                  <li key={topic} className="flex items-center gap-3 text-sm">
+                {[
+                  { label: "SIP Guide", href: "/calculators/sip" },
+                  { label: "Tax Saving 80C", href: "/tax" },
+                  { label: "IPO Basics", href: "/ipo" },
+                  { label: "Gold Guide", href: "/gold" },
+                  { label: "Retirement Plan", href: "/personal-finance/retirement" },
+                  { label: "Emergency Fund", href: "/personal-finance/savings" },
+                ].map((topic, i) => (
+                  <li key={topic.href} className="flex items-center gap-3 text-sm">
                     <span className="w-6 text-2xl font-extrabold text-gray-200 dark:text-gray-700">{i + 1}</span>
-                    <span className="cursor-pointer transition-colors hover:text-[#1E40AF] dark:hover:text-blue-400">{topic}</span>
+                    <Link href={topic.href} className="transition-colors hover:text-[#1E40AF] dark:hover:text-blue-400">{topic.label}</Link>
                   </li>
                 ))}
               </ul>
