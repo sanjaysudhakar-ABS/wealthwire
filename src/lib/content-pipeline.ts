@@ -42,6 +42,8 @@ export async function syncNewsHeadlines() {
 
       const category = mapFinnhubCategory(cat)
 
+      // Store as DRAFT only — thin source stubs must not appear as
+      // PUBLISHED articles (AdSense "low value / thin content" risk).
       await prisma.article.create({
         data: {
           title: a.headline,
@@ -49,13 +51,12 @@ export async function syncNewsHeadlines() {
           excerpt: a.summary.slice(0, 300),
           content: buildNewsContent(a),
           coverImage: a.image || null,
-          status: "PUBLISHED",
+          status: "DRAFT",
           publishedAt: new Date(a.datetime * 1000),
           featured: false,
         },
       })
 
-      // Upsert category and link
       const dbCat = await prisma.category.upsert({
         where: { slug: slugify(category) },
         create: { name: category, slug: slugify(category) },
@@ -88,6 +89,12 @@ const ARTICLE_TOPICS = [
   { title: "ELSS vs PPF vs NPS: Best Tax-Saving Investments Compared", category: "Tax" },
   { title: "FII vs DII Flows: How Foreign & Domestic Investors Move Markets", category: "Markets" },
   { title: "Step-Up SIP: Why Increasing Your SIP by 10% Each Year is Powerful", category: "Personal Finance" },
+  { title: "Emergency Fund vs Investing: How Much Cash Should You Keep?", category: "Personal Finance" },
+  { title: "Home Loan Prepayment vs Mutual Fund SIP: A Decision Framework", category: "Personal Finance" },
+  { title: "Index Funds vs Active Funds in India: Costs, Tracking Error, and Temperament", category: "Mutual Funds" },
+  { title: "Understanding Expense Ratios: The Silent Drag on Mutual Fund Returns", category: "Mutual Funds" },
+  { title: "Health Insurance Buying Guide for Indian Families", category: "Personal Finance" },
+  { title: "Sovereign Gold Bonds vs Gold ETFs: Costs and Liquidity Compared", category: "Gold" },
 ]
 
 export async function generateAIArticle() {
@@ -112,21 +119,24 @@ Title: "${topic.title}"
 Category: ${topic.category}
 Target audience: Indian retail investors aged 25-45, English-speaking
 Tone: Professional but accessible, no jargon without explanation
-Length: 800-1200 words
+Length: 1200-1800 words
 
 Requirements:
 - Include an engaging introduction that hooks the reader
 - Use H2 and H3 subheadings (markdown format: ## and ###)
 - Include specific Indian context (SEBI, NSE/BSE, INR amounts, Indian funds/stocks where relevant)
+- Include at least one worked numerical example with INR figures
 - Add a practical "Key Takeaways" section at the end with 3-5 bullet points
+- Add a short FAQ section (3 questions) before the disclaimer
 - Include a disclaimer at the very end: "Disclaimer: This article is for educational purposes only and does not constitute investment advice. WealthWire is not SEBI registered. Please consult a qualified financial advisor before making investment decisions."
 - Write in clean markdown
+- Do not invent fake quotes from real people or fabricate proprietary data tables
 
 Write only the article content, starting with the first paragraph (not the title).`
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2000,
+    max_tokens: 4000,
     messages: [{ role: "user", content: prompt }],
   })
 
@@ -211,10 +221,9 @@ function firstImage(item: RssItem): string | null {
 }
 
 /**
- * Ingest Coinpedia's RSS feed as Crypto news. Follows the same
- * excerpt + attribution + link-back model as the Finnhub sync: we store the
- * summary and link readers to the original article, never republishing the
- * full piece.
+ * Ingest Coinpedia's RSS feed as draft headlines only.
+ * Full crypto stories stay on Coinpedia — we do not republish thin stubs as
+ * PUBLISHED articles (AdSense thin-content risk).
  */
 export async function syncCoinpediaFeed() {
   const res = await fetch(COINPEDIA_FEED, {
@@ -257,7 +266,8 @@ export async function syncCoinpediaFeed() {
         excerpt,
         content: `${excerpt}\n\n**Source:** [Coinpedia](${link})\n\n*This summary was sourced from Coinpedia. WealthWire aggregates crypto news for informational purposes only. This does not constitute investment advice.*`,
         coverImage: firstImage(item),
-        status: "PUBLISHED",
+        // DRAFT: not shown on public news listings until expanded editorially.
+        status: "DRAFT",
         publishedAt: isNaN(published.getTime()) ? new Date() : published,
         featured: false,
         categoryId: dbCat.id,

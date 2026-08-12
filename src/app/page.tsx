@@ -97,7 +97,7 @@ export default async function HomePage() {
 
       <AdSlot slot="HEADER_BANNER" />
 
-      {/* Latest News — from the automated content pipeline */}
+      {/* Latest News — substantial articles only */}
       <section>
         <div className="mb-6 flex items-center justify-between">
           <h2 className="section-title">Latest News</h2>
@@ -207,14 +207,14 @@ export default async function HomePage() {
                   <div className="text-right"><div className="text-xs text-gray-500">Min SIP</div><div className="text-sm font-semibold">₹{fund.minSip}/mo</div></div>
                 </div>
                 <StarRating rating={fund.rating} />
-                <Button size="sm" className="mt-3 w-full rounded-full">Invest Now</Button>
+                <Link href="/mutual-funds" className="mt-3 block">
+                  <Button size="sm" className="w-full rounded-full">View Fund Centre</Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
-
-      <AdSlot slot="IN_ARTICLE_MIDDLE" />
 
       {/* IPO Centre */}
       <section>
@@ -236,7 +236,9 @@ export default async function HomePage() {
                   <div><div className="text-gray-500">Open Date</div><div className="font-semibold">{ipo.openDate}</div></div>
                   <div><div className="text-gray-500">GMP</div><div className={`font-semibold ${ipo.gmp > 0 ? "text-emerald-600" : "text-gray-500"}`}>{ipo.gmp > 0 ? `+₹${ipo.gmp}` : "N/A"}</div></div>
                 </div>
-                <Button variant="outline" size="sm" className="mt-3 w-full rounded-full">View Details</Button>
+                <Link href="/ipo" className="mt-3 block">
+                  <Button variant="outline" size="sm" className="w-full rounded-full">View IPO Calendar</Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
@@ -267,7 +269,10 @@ export default async function HomePage() {
 
       {/* Personal Finance */}
       <section>
-        <h2 className="section-title mb-6">Personal Finance</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="section-title">Personal Finance</h2>
+          <Link href="/personal-finance" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">All Guides <ChevronRight size={14} /></Link>
+        </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {personalFinanceTopics.map((topic) => (
             <Link key={topic.label} href={topic.href} className="group rounded-2xl border border-gray-200 bg-white p-4 text-center transition-all hover:-translate-y-0.5 hover:border-[#1E40AF] hover:shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -281,13 +286,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <AdSlot slot="IN_ARTICLE_BOTTOM" />
-
       {/* Gold Rates */}
       <section>
         <div className="mb-6 flex items-center justify-between">
           <h2 className="section-title">Gold &amp; Silver Rates Today</h2>
-          <Link href="/gold" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">View All Cities <ChevronRight size={14} /></Link>
+          <Link href="/gold" className="flex items-center gap-1 text-sm font-medium text-[#1E40AF] hover:underline dark:text-blue-400">Gold Guide <ChevronRight size={14} /></Link>
         </div>
         <Card className="rounded-2xl">
           <CardContent className="p-0">
@@ -311,6 +314,7 @@ export default async function HomePage() {
             </table>
           </CardContent>
         </Card>
+        <p className="mt-2 text-xs text-gray-500">Indicative educational snapshot — confirm live prices with your jeweller or exchange-traded products before buying.</p>
       </section>
 
       {/* Newsletter */}
@@ -322,30 +326,6 @@ export default async function HomePage() {
           <button type="submit" className="shrink-0 rounded-full bg-[#F59E0B] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-amber-600">Subscribe Free</button>
         </form>
         <p className="mt-3 text-xs text-blue-200">No spam. Unsubscribe anytime.</p>
-      </section>
-
-      {/* Premium */}
-      <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-8 dark:border-amber-900 dark:from-amber-950/30 dark:to-orange-950/20">
-        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
-          <div>
-            <span className="mb-3 inline-block rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">WealthWire Pro</span>
-            <h2 className="mb-4 text-2xl font-bold tracking-tight">Unlock Premium Market Intelligence</h2>
-            <ul className="space-y-2 text-sm">
-              {["Ad-free experience", "Unlimited watchlists & portfolio tracking", "Weekly market outlook reports", "AI-powered investment insights", "Exclusive IPO research notes", "Priority email support"].map((f) => (
-                <li key={f} className="flex items-center gap-2"><span className="font-bold text-emerald-500">✓</span> {f}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-2xl bg-white p-6 text-center shadow-md dark:bg-gray-900">
-            <div className="mb-1 text-4xl font-extrabold text-[#1E40AF] dark:text-blue-400">₹499<span className="text-base font-normal text-gray-500">/month</span></div>
-            <div className="mb-5 text-sm text-gray-500">or ₹4,499/year (save 25%)</div>
-            <Button size="lg" className="mb-3 w-full rounded-full">Start 7-Day Free Trial</Button>
-            <Link href="/premium" className="mt-2 flex items-center justify-center gap-1 text-sm text-[#1E40AF] hover:underline dark:text-blue-400">
-              Compare Plans <ArrowRight size={14} />
-            </Link>
-            <p className="mt-3 text-xs text-gray-400">No credit card required for trial</p>
-          </div>
-        </div>
       </section>
 
     </div>

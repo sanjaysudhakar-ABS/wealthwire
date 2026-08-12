@@ -1,12 +1,20 @@
 "use client"
 
+import { isAdSenseEnabled } from "@/lib/ads"
+
 interface AdUnitProps {
   slot: string
   format?: string
   className?: string
 }
 
+/**
+ * Renders nothing unless NEXT_PUBLIC_ADSENSE_ENABLED=true.
+ * Avoids empty ad slots and premature ad inventory during AdSense review.
+ */
 export function AdUnit({ slot: _slot, format: _format, className = "" }: AdUnitProps) {
+  if (!isAdSenseEnabled()) return null
+
   const isDev = process.env.NODE_ENV === "development"
   if (isDev) {
     return (

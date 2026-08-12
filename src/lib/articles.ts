@@ -3,6 +3,9 @@ import { newsArticles as mockArticles } from "./mock-data"
 
 export const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800"
 
+/** Minimum word count for a PUBLISHED article to appear in public listings. */
+export const MIN_ARTICLE_WORDS = 250
+
 export type ArticleCard = {
   slug: string
   title: string
@@ -16,9 +19,24 @@ export type ArticleCard = {
 }
 
 export function estimateReadTime(text: string): string {
-  const words = text.split(/\s+/).length
+  const words = text.split(/\s+/).filter(Boolean).length
   const mins = Math.max(1, Math.round(words / 200))
   return `${mins} min`
+}
+
+/** True when content is a short aggregator stub or otherwise too thin for AdSense. */
+export function isThinContent(content: string | null | undefined): boolean {
+  if (!content) return true
+  const words = content.split(/\s+/).filter(Boolean).length
+  if (words < MIN_ARTICLE_WORDS) return true
+  // Known stub footer from Finnhub / Coinpedia ingest
+  if (
+    content.includes("WealthWire aggregates") &&
+    words < 400
+  ) {
+    return true
+  }
+  return false
 }
 
 type ArticleRow = {
@@ -71,20 +89,25 @@ const cardSelect = {
   category: { select: { name: true } },
 } as const
 
-/** Latest published articles, newest first. Falls back to mock content
- *  when the database is empty or unreachable so the site never renders bare. */
+/**
+ * Latest published articles with substantial body copy.
+ * Thin aggregator stubs are excluded even if status is PUBLISHED (legacy rows).
+ * Falls back to mock evergreen cards when the database is empty or unreachable.
+ */
 export async function getLatestArticles(limit = 12, category?: string): Promise<ArticleCard[]> {
   try {
+    // Over-fetch then filter thin stubs so listings stay dense enough.
     const rows = await prisma.article.findMany({
       where: {
         status: "PUBLISHED",
         ...(category ? { category: { name: category } } : {}),
       },
       orderBy: { publishedAt: "desc" },
-      take: limit,
+      take: Math.max(limit * 4, 40),
       select: cardSelect,
     })
-    if (rows.length > 0) return rows.map(toCard)
+    const substantial = rows.filter(r => !isThinContent(r.content)).map(toCard)
+    if (substantial.length > 0) return substantial.slice(0, limit)
   } catch { /* fall through to mock */ }
   const mocks = mockCards()
   return (category ? mocks.filter(a => a.category === category) : mocks).slice(0, limit)
